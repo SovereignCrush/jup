@@ -69,6 +69,31 @@ JSON output for agents or scripts:
 npm run cli -- pay --agent claude --token SOL --settle 20 USDC --json
 ```
 
+The CLI returns a structured local payment intent with:
+
+- `decision`: `auto_pay`, `review_required`, or `rejected`.
+- `nextAction`: `ready_for_authorization`, `open_review`, or `rejected`.
+- `riskLevel`: `low`, `medium`, or `high`.
+- `policyChecks`: deterministic local policy checks for agents and humans.
+
+Example policy override:
+
+```json
+{
+  "maxAutoSettleUSDC": 10,
+  "maxAllowedSettleUSDC": 250,
+  "verifiedTokens": ["USDC", "SOL", "JUP", "BONK"],
+  "trustedRecipients": ["jup-sh-demo"],
+  "reviewUnknownRecipients": true
+}
+```
+
+Save it as `jup.policy.json`, then run:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 2 USDC --recipient jup-sh-demo
+```
+
 ## Local Development
 
 Install dependencies:

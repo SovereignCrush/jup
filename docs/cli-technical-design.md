@@ -32,6 +32,12 @@ Expected result:
     "token": "USDC"
   },
   "decision": "review_required",
+  "nextAction": "open_review",
+  "riskLevel": "medium",
+  "reasons": [
+    "recipient is not trusted",
+    "settlement amount exceeds auto-pay limit of 5 USDC"
+  ],
   "reviewUrl": "https://jup.sh/pay/intent_..."
 }
 ```
@@ -167,7 +173,10 @@ PaymentIntent {
     settlement,
     quote,
     decision,
+    next_action,
+    risk_level,
     reasons,
+    policy_checks,
     review_url,
     created_at,
 }
@@ -196,6 +205,32 @@ Decision values:
 | `auto_pay` | The intent is inside policy. Later phases may proceed to wallet authorization. |
 | `review_required` | The intent is valid, but requires human review before signing. |
 | `rejected` | The intent is outside allowed policy. |
+
+Agent-facing action values:
+
+| Next action | Meaning |
+| --- | --- |
+| `ready_for_authorization` | Policy passed. Later phases may continue to local wallet authorization. |
+| `open_review` | Policy requires Risk Review before signing. |
+| `rejected` | The intent should not continue. |
+
+Risk levels:
+
+| Risk level | Meaning |
+| --- | --- |
+| `low` | Policy passed. |
+| `medium` | Valid payment, but review is required. |
+| `high` | Rejected by policy. |
+
+Policy checks are returned as structured entries:
+
+```json
+{
+  "name": "recipient_trust",
+  "status": "review",
+  "message": "recipient is not trusted"
+}
+```
 
 ### quote_settlement
 
@@ -245,7 +280,12 @@ Agent: claude
 Pay with: SOL
 Settle: 20 USDC
 Decision: review_required
+Next action: open_review
+Risk: medium
 Reason: recipient is not trusted
+Policy checks:
+- [pass] verified_token: SOL is verified
+- [review] recipient_trust: recipient is not trusted
 Review: https://jup.sh/pay/intent_...
 ```
 

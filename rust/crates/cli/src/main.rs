@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
-use jup_sh_core::{CreatePaymentIntentInput, Decision, Policy, create_payment_intent};
+use jup_sh_core::{
+    CreatePaymentIntentInput, Decision, NextAction, Policy, PolicyCheckStatus, RiskLevel,
+    create_payment_intent,
+};
 use std::{fs, path::PathBuf};
 
 #[derive(Debug, Parser)]
@@ -130,6 +133,8 @@ fn print_human(intent: &jup_sh_core::PaymentIntent) {
         intent.settlement.token
     );
     println!("Decision: {}", decision_label(&intent.decision));
+    println!("Next action: {}", next_action_label(&intent.next_action));
+    println!("Risk: {}", risk_level_label(&intent.risk_level));
     if !intent.reasons.is_empty() {
         println!("Reason: {}", intent.reasons.join("; "));
     }
@@ -143,6 +148,15 @@ fn print_human(intent: &jup_sh_core::PaymentIntent) {
             quote.source
         );
     }
+    println!("Policy checks:");
+    for check in &intent.policy_checks {
+        println!(
+            "- [{}] {}: {}",
+            policy_check_status_label(&check.status),
+            check.name,
+            check.message
+        );
+    }
     println!("Review: {}", intent.review_url);
 }
 
@@ -151,6 +165,30 @@ fn decision_label(decision: &Decision) -> &'static str {
         Decision::AutoPay => "auto_pay",
         Decision::ReviewRequired => "review_required",
         Decision::Rejected => "rejected",
+    }
+}
+
+fn next_action_label(next_action: &NextAction) -> &'static str {
+    match next_action {
+        NextAction::ReadyForAuthorization => "ready_for_authorization",
+        NextAction::OpenReview => "open_review",
+        NextAction::Rejected => "rejected",
+    }
+}
+
+fn risk_level_label(risk_level: &RiskLevel) -> &'static str {
+    match risk_level {
+        RiskLevel::Low => "low",
+        RiskLevel::Medium => "medium",
+        RiskLevel::High => "high",
+    }
+}
+
+fn policy_check_status_label(status: &PolicyCheckStatus) -> &'static str {
+    match status {
+        PolicyCheckStatus::Pass => "pass",
+        PolicyCheckStatus::Review => "review",
+        PolicyCheckStatus::Reject => "reject",
     }
 }
 

@@ -19,7 +19,9 @@ pub enum JupShError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Policy {
+    #[serde(rename = "maxAutoSettleUSDC")]
     pub max_auto_settle_usdc: f64,
+    #[serde(rename = "maxAllowedSettleUSDC")]
     pub max_allowed_settle_usdc: f64,
     pub verified_tokens: Vec<String>,
     pub trusted_recipients: Vec<String>,
@@ -49,6 +51,38 @@ pub enum Decision {
     AutoPay,
     ReviewRequired,
     Rejected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NextAction {
+    ReadyForAuthorization,
+    OpenReview,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RiskLevel {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PolicyCheckStatus {
+    Pass,
+    Review,
+    Reject,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PolicyCheck {
+    pub name: String,
+    pub status: PolicyCheckStatus,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,7 +118,10 @@ pub struct SettlementQuote {
 #[serde(rename_all = "camelCase")]
 pub struct PolicyResult {
     pub decision: Decision,
+    pub next_action: NextAction,
+    pub risk_level: RiskLevel,
     pub reasons: Vec<String>,
+    pub checks: Vec<PolicyCheck>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -98,7 +135,10 @@ pub struct PaymentIntent {
     pub settlement: Settlement,
     pub quote: Option<SettlementQuote>,
     pub decision: Decision,
+    pub next_action: NextAction,
+    pub risk_level: RiskLevel,
     pub reasons: Vec<String>,
+    pub policy_checks: Vec<PolicyCheck>,
     pub review_url: String,
     pub created_at: DateTime<Utc>,
 }
@@ -142,7 +182,10 @@ pub fn create_payment_intent(
         },
         quote,
         decision: policy_result.decision,
+        next_action: policy_result.next_action,
+        risk_level: policy_result.risk_level,
         reasons: policy_result.reasons,
+        policy_checks: policy_result.checks,
         review_url: format!("{review_base_url}/pay/{intent_id}"),
         created_at: Utc::now(),
     })
@@ -160,32 +203,56 @@ pub fn evaluate_policy(
         .iter()
         .map(|token| token.trim().to_uppercase())
         .collect::<HashSet<_>>();
+    let mut checks = Vec::new();
 
-    if !verified_tokens.contains(&pay_token) {
-        return Ok(PolicyResult {
-            decision: Decision::Rejected,
-            reasons: vec![format!("{pay_token} is not a verified token")],
-        });
-    }
+    checks.push(if verified_tokens.contains(&pay_token) {
+        policy_check(
+            "verified_token",
+            PolicyCheckStatus::Pass,
+            format!("{pay_token} is verified"),
+        )
+    } else {
+        policy_check(
+            "verified_token",
+            PolicyCheckStatus::Reject,
+            format!("{pay_token} is not a verified token"),
+        )
+    });
 
-    if settle_token != "USDC" {
-        return Ok(PolicyResult {
-            decision: Decision::Rejected,
-            reasons: vec!["only USDC settlement is supported in Phase 1".to_string()],
-        });
-    }
+    checks.push(if settle_token == "USDC" {
+        policy_check(
+            "settlement_token",
+            PolicyCheckStatus::Pass,
+            "USDC settlement is supported",
+        )
+    } else {
+        policy_check(
+            "settlement_token",
+            PolicyCheckStatus::Reject,
+            "only USDC settlement is supported in Phase 1",
+        )
+    });
 
-    if settle_amount > policy.max_allowed_settle_usdc {
-        return Ok(PolicyResult {
-            decision: Decision::Rejected,
-            reasons: vec![format!(
+    checks.push(if settle_amount <= policy.max_allowed_settle_usdc {
+        policy_check(
+            "max_allowed_amount",
+            PolicyCheckStatus::Pass,
+            format!(
+                "{} USDC is within the max allowed limit",
+                trim_number(settle_amount)
+            ),
+        )
+    } else {
+        policy_check(
+            "max_allowed_amount",
+            PolicyCheckStatus::Reject,
+            format!(
                 "settlement amount exceeds {} USDC",
                 trim_number(policy.max_allowed_settle_usdc)
-            )],
-        });
-    }
+            ),
+        )
+    });
 
-    let mut reasons = Vec::new();
     let trusted_recipients = policy
         .trusted_recipients
         .iter()
@@ -193,26 +260,71 @@ pub fn evaluate_policy(
         .collect::<HashSet<_>>();
     let recipient = input.recipient.as_deref().unwrap_or_default();
 
-    if policy.review_unknown_recipients
-        && (recipient.is_empty() || !trusted_recipients.contains(recipient))
-    {
-        reasons.push("recipient is not trusted".to_string());
-    }
+    checks.push(if !policy.review_unknown_recipients {
+        policy_check(
+            "recipient_trust",
+            PolicyCheckStatus::Pass,
+            "unknown recipients do not require review",
+        )
+    } else if !recipient.is_empty() && trusted_recipients.contains(recipient) {
+        policy_check(
+            "recipient_trust",
+            PolicyCheckStatus::Pass,
+            "recipient is trusted",
+        )
+    } else {
+        policy_check(
+            "recipient_trust",
+            PolicyCheckStatus::Review,
+            "recipient is not trusted",
+        )
+    });
 
-    if settle_amount > policy.max_auto_settle_usdc {
-        reasons.push(format!(
-            "settlement amount exceeds auto-pay limit of {} USDC",
-            trim_number(policy.max_auto_settle_usdc)
-        ));
-    }
+    checks.push(if settle_amount <= policy.max_auto_settle_usdc {
+        policy_check(
+            "auto_pay_limit",
+            PolicyCheckStatus::Pass,
+            format!(
+                "{} USDC is within the auto-pay limit",
+                trim_number(settle_amount)
+            ),
+        )
+    } else {
+        policy_check(
+            "auto_pay_limit",
+            PolicyCheckStatus::Review,
+            format!(
+                "settlement amount exceeds auto-pay limit of {} USDC",
+                trim_number(policy.max_auto_settle_usdc)
+            ),
+        )
+    });
+
+    let reasons = checks
+        .iter()
+        .filter(|check| check.status != PolicyCheckStatus::Pass)
+        .map(|check| check.message.clone())
+        .collect::<Vec<_>>();
+    let has_reject = checks
+        .iter()
+        .any(|check| check.status == PolicyCheckStatus::Reject);
+    let has_review = checks
+        .iter()
+        .any(|check| check.status == PolicyCheckStatus::Review);
+    let decision = if has_reject {
+        Decision::Rejected
+    } else if has_review {
+        Decision::ReviewRequired
+    } else {
+        Decision::AutoPay
+    };
 
     Ok(PolicyResult {
-        decision: if reasons.is_empty() {
-            Decision::AutoPay
-        } else {
-            Decision::ReviewRequired
-        },
+        next_action: next_action_for_decision(&decision),
+        risk_level: risk_level_for_decision(&decision),
+        decision,
         reasons,
+        checks,
     })
 }
 
@@ -283,6 +395,34 @@ fn trim_number(value: f64) -> String {
     }
 }
 
+fn policy_check(
+    name: impl Into<String>,
+    status: PolicyCheckStatus,
+    message: impl Into<String>,
+) -> PolicyCheck {
+    PolicyCheck {
+        name: name.into(),
+        status,
+        message: message.into(),
+    }
+}
+
+fn next_action_for_decision(decision: &Decision) -> NextAction {
+    match decision {
+        Decision::AutoPay => NextAction::ReadyForAuthorization,
+        Decision::ReviewRequired => NextAction::OpenReview,
+        Decision::Rejected => NextAction::Rejected,
+    }
+}
+
+fn risk_level_for_decision(decision: &Decision) -> RiskLevel {
+    match decision {
+        Decision::AutoPay => RiskLevel::Low,
+        Decision::ReviewRequired => RiskLevel::Medium,
+        Decision::Rejected => RiskLevel::High,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -308,7 +448,13 @@ mod tests {
         let result = evaluate_policy(&input(2.0), &policy).unwrap();
 
         assert!(matches!(result.decision, Decision::AutoPay));
+        assert!(matches!(
+            result.next_action,
+            NextAction::ReadyForAuthorization
+        ));
+        assert!(matches!(result.risk_level, RiskLevel::Low));
         assert!(result.reasons.is_empty());
+        assert_eq!(result.checks.len(), 5);
     }
 
     #[test]
@@ -321,6 +467,8 @@ mod tests {
         let result = evaluate_policy(&input(20.0), &policy).unwrap();
 
         assert!(matches!(result.decision, Decision::ReviewRequired));
+        assert!(matches!(result.next_action, NextAction::OpenReview));
+        assert!(matches!(result.risk_level, RiskLevel::Medium));
         assert_eq!(result.reasons.len(), 1);
     }
 
@@ -333,6 +481,18 @@ mod tests {
         let result = evaluate_policy(&request, &policy).unwrap();
 
         assert!(matches!(result.decision, Decision::Rejected));
-        assert_eq!(result.reasons, vec!["FAKE is not a verified token"]);
+        assert!(matches!(result.next_action, NextAction::Rejected));
+        assert!(matches!(result.risk_level, RiskLevel::High));
+        assert!(
+            result
+                .reasons
+                .contains(&"FAKE is not a verified token".to_string())
+        );
+        assert!(
+            result
+                .checks
+                .iter()
+                .any(|check| check.status == PolicyCheckStatus::Reject)
+        );
     }
 }
