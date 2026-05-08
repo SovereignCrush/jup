@@ -1,0 +1,13 @@
+{
+  "name": "jup-sh",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "check": "node --check app.js && node --check server.js",
+    "deploy": "wrangler pages deploy . --project-name=jup-sh"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
