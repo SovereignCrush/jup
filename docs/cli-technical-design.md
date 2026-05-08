@@ -106,6 +106,17 @@ flowchart TB
 
 ## 4. Command Interface
 
+Quickstart from source:
+
+```bash
+npm install
+npm run cli -- policy show
+npm run cli -- policy init
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+npm run cli -- intent list
+```
+
 Primary command:
 
 ```bash

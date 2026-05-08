@@ -40,6 +40,57 @@ agent intent -> policy decision -> Jupiter settlement -> authorize or review
 The default path should be automatic. Human review should appear only when
 policy or risk signals require it.
 
+## Quickstart
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Show the default local policy:
+
+```bash
+npm run cli -- policy show
+```
+
+Create a local policy file:
+
+```bash
+npm run cli -- policy init
+```
+
+Create a payment intent with the default mock quote provider:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+```
+
+Create a payment intent with a real Jupiter quote, without signing or executing
+a payment:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+```
+
+List saved local intents:
+
+```bash
+npm run cli -- intent list
+```
+
+Show a saved intent:
+
+```bash
+npm run cli -- intent show intent_xxx
+```
+
+The CLI saves generated intents locally:
+
+```txt
+.jup-sh/intents/<intent_id>.json
+```
+
 ## Current Prototype
 
 V1 includes:
@@ -58,43 +109,6 @@ Current demo command:
 jup-sh pay --agent claude --token SOL --settle 20 USDC
 ```
 
-Run the local CLI from source:
-
-```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC
-```
-
-Use a real Jupiter quote without signing or executing a payment:
-
-```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
-```
-
-The default quote provider is `mock`. Set `JUPITER_API_KEY` or pass
-`--jupiter-api-key` if the Jupiter endpoint requires an API key.
-
-The command saves the generated intent locally:
-
-```txt
-.jup-sh/intents/<intent_id>.json
-```
-
-Show a saved intent:
-
-```bash
-npm run cli -- intent list
-npm run cli -- intent list --json
-npm run cli -- intent show intent_xxx
-npm run cli -- intent show intent_xxx --json
-```
-
-Manage local policy:
-
-```bash
-npm run cli -- policy show
-npm run cli -- policy init
-```
-
 JSON output for agents or scripts:
 
 ```bash
@@ -108,6 +122,27 @@ The CLI returns a structured local payment intent with:
 - `nextAction`: `ready_for_authorization`, `open_review`, or `rejected`.
 - `riskLevel`: `low`, `medium`, or `high`.
 - `policyChecks`: deterministic local checks over intent fields and quote risk.
+
+The default quote provider is `mock`. Use `jupiter` for quote-only real routing:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+```
+
+Set `JUPITER_API_KEY` or pass `--jupiter-api-key` if the Jupiter endpoint
+requires an API key.
+
+Useful local commands:
+
+```bash
+npm run cli -- policy show
+npm run cli -- policy show --json
+npm run cli -- policy init
+npm run cli -- intent list
+npm run cli -- intent list --json
+npm run cli -- intent show intent_xxx
+npm run cli -- intent show intent_xxx --json
+```
 
 Example policy override:
 
