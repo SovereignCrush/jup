@@ -142,6 +142,7 @@ button {
   padding: 0;
   border: 0;
   color: var(--muted);
+  font-size: 16px;
   font-weight: 650;
 }
 
@@ -1553,7 +1554,7 @@ body.light-route {
 .light-route .nav a,
 .light-route .nav span {
   color: #a1a1aa;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .light-route .nav a:hover {
