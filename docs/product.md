@@ -123,7 +123,7 @@ V1 includes:
 - Structured policy output for agents and humans.
 - A `SettlementQuoter` boundary with a mock Jupiter-style quoter.
 - Local intent persistence under `.jup-sh/intents`.
-- `intent show` for reading saved local intents.
+- `intent list` and `intent show` for reading saved local intents.
 
 Current agent list shown on the homepage:
 

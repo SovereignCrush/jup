@@ -72,6 +72,8 @@ The command saves the generated intent locally:
 Show a saved intent:
 
 ```bash
+npm run cli -- intent list
+npm run cli -- intent list --json
 npm run cli -- intent show intent_xxx
 npm run cli -- intent show intent_xxx --json
 ```

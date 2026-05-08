@@ -128,6 +128,8 @@ Options:
 Show a saved intent:
 
 ```bash
+jup-sh intent list
+jup-sh intent list --json
 jup-sh intent show intent_abc123
 jup-sh intent show intent_abc123 --json
 ```
@@ -305,6 +307,7 @@ This keeps Phase 1 local while making the review URL's intent ID inspectable.
 The CLI can read a saved intent:
 
 ```bash
+jup-sh intent list
 jup-sh intent show intent_abc123
 ```
 
@@ -352,6 +355,14 @@ Saved: .jup-sh/intents/intent_....json
 ```
 
 `--json` prints only JSON for agent and script usage.
+
+List output should stay compact:
+
+```txt
+jup.sh local payment intents
+
+intent_...  claude  20 USDC  review_required  2026-05-08T...
+```
 
 ## 10. Future Phases
 

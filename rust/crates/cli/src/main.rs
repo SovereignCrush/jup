@@ -68,8 +68,25 @@ struct IntentCommand {
 
 #[derive(Debug, Subcommand)]
 enum IntentSubcommand {
+    /// List locally saved payment intents.
+    List(IntentListCommand),
     /// Show a locally saved payment intent.
     Show(IntentShowCommand),
+}
+
+#[derive(Debug, Parser)]
+struct IntentListCommand {
+    /// Print JSON only.
+    #[arg(long)]
+    json: bool,
+
+    /// Maximum number of intents to show.
+    #[arg(long, default_value_t = 20)]
+    limit: usize,
+
+    /// Intent storage directory.
+    #[arg(long)]
+    store: Option<PathBuf>,
 }
 
 #[derive(Debug, Parser)]
@@ -145,8 +162,21 @@ fn run_pay(command: PayCommand) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_intent(command: IntentCommand) -> Result<(), Box<dyn std::error::Error>> {
     match command.command {
+        IntentSubcommand::List(command) => run_intent_list(command),
         IntentSubcommand::Show(command) => run_intent_show(command),
     }
+}
+
+fn run_intent_list(command: IntentListCommand) -> Result<(), Box<dyn std::error::Error>> {
+    let intents = list_intents(command.store.as_ref(), command.limit)?;
+
+    if command.json {
+        println!("{}", serde_json::to_string_pretty(&intents)?);
+    } else {
+        print_intent_list(&intents);
+    }
+
+    Ok(())
 }
 
 fn run_intent_show(command: IntentShowCommand) -> Result<(), Box<dyn std::error::Error>> {
@@ -196,6 +226,33 @@ fn load_intent(
     Ok(serde_json::from_str(&content)?)
 }
 
+fn list_intents(
+    store: Option<&PathBuf>,
+    limit: usize,
+) -> Result<Vec<PaymentIntent>, Box<dyn std::error::Error>> {
+    let dir = intent_store_dir(store);
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut intents = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) != Some("json") {
+            continue;
+        }
+
+        let content = fs::read_to_string(path)?;
+        intents.push(serde_json::from_str::<PaymentIntent>(&content)?);
+    }
+
+    intents.sort_by(|left, right| right.created_at.cmp(&left.created_at));
+    intents.truncate(limit);
+
+    Ok(intents)
+}
+
 fn intent_store_dir(store: Option<&PathBuf>) -> PathBuf {
     store
         .cloned()
@@ -240,6 +297,28 @@ fn print_human(intent: &PaymentIntent) {
         );
     }
     println!("Review: {}", intent.review_url);
+}
+
+fn print_intent_list(intents: &[PaymentIntent]) {
+    if intents.is_empty() {
+        println!("No local payment intents found.");
+        return;
+    }
+
+    println!("jup.sh local payment intents");
+    println!();
+
+    for intent in intents {
+        println!(
+            "{}  {}  {} {}  {}  {}",
+            intent.intent_id,
+            intent.agent,
+            trim_number(intent.settlement.amount),
+            intent.settlement.token,
+            intent_status_label(&intent.status),
+            intent.created_at.to_rfc3339()
+        );
+    }
 }
 
 fn decision_label(decision: &Decision) -> &'static str {
