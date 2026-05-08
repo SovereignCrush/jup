@@ -114,6 +114,25 @@ pub struct SettlementQuote {
     pub price_impact_bps: u16,
 }
 
+pub trait SettlementQuoter {
+    fn quote_settlement(
+        &self,
+        input: &CreatePaymentIntentInput,
+    ) -> Result<SettlementQuote, JupShError>;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct MockSettlementQuoter;
+
+impl SettlementQuoter for MockSettlementQuoter {
+    fn quote_settlement(
+        &self,
+        input: &CreatePaymentIntentInput,
+    ) -> Result<SettlementQuote, JupShError> {
+        quote_mock_settlement(input)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyResult {
@@ -148,6 +167,15 @@ pub fn create_payment_intent(
     policy: &Policy,
     review_base_url: &str,
 ) -> Result<PaymentIntent, JupShError> {
+    create_payment_intent_with_quoter(input, policy, review_base_url, &MockSettlementQuoter)
+}
+
+pub fn create_payment_intent_with_quoter(
+    input: CreatePaymentIntentInput,
+    policy: &Policy,
+    review_base_url: &str,
+    quoter: &impl SettlementQuoter,
+) -> Result<PaymentIntent, JupShError> {
     let agent = required_string(input.agent, "agent")?;
     let pay_token = normalize_token(&input.pay_token)?;
     let settle_token = normalize_token(&input.settle_token)?;
@@ -165,7 +193,7 @@ pub fn create_payment_intent(
     let policy_result = evaluate_policy(&normalized, policy)?;
     let quote = match policy_result.decision {
         Decision::Rejected => None,
-        _ => Some(quote_settlement(&normalized)?),
+        _ => Some(quoter.quote_settlement(&normalized)?),
     };
     let intent_id = format!("intent_{}", Uuid::new_v4().simple());
     let review_base_url = review_base_url.trim_end_matches('/');
@@ -329,6 +357,10 @@ pub fn evaluate_policy(
 }
 
 pub fn quote_settlement(input: &CreatePaymentIntentInput) -> Result<SettlementQuote, JupShError> {
+    MockSettlementQuoter.quote_settlement(input)
+}
+
+fn quote_mock_settlement(input: &CreatePaymentIntentInput) -> Result<SettlementQuote, JupShError> {
     let pay_token = normalize_token(&input.pay_token)?;
     let settle_token = normalize_token(&input.settle_token)?;
     let settle_amount = positive_amount(input.settle_amount, "settle_amount")?;
@@ -427,6 +459,25 @@ fn risk_level_for_decision(decision: &Decision) -> RiskLevel {
 mod tests {
     use super::*;
 
+    #[derive(Debug)]
+    struct FixedQuoter;
+
+    impl SettlementQuoter for FixedQuoter {
+        fn quote_settlement(
+            &self,
+            input: &CreatePaymentIntentInput,
+        ) -> Result<SettlementQuote, JupShError> {
+            Ok(SettlementQuote {
+                source: "fixed_test".to_string(),
+                input_token: input.pay_token.clone(),
+                input_amount: 1.23,
+                settle_amount: input.settle_amount,
+                settle_token: input.settle_token.clone(),
+                price_impact_bps: 7,
+            })
+        }
+    }
+
     fn input(settle_amount: f64) -> CreatePaymentIntentInput {
         CreatePaymentIntentInput {
             agent: "claude".to_string(),
@@ -494,5 +545,22 @@ mod tests {
                 .iter()
                 .any(|check| check.status == PolicyCheckStatus::Reject)
         );
+    }
+
+    #[test]
+    fn intent_uses_injected_quoter() {
+        let policy = Policy {
+            trusted_recipients: vec!["trusted-demo".to_string()],
+            ..Policy::default()
+        };
+
+        let intent =
+            create_payment_intent_with_quoter(input(2.0), &policy, "https://jup.sh", &FixedQuoter)
+                .unwrap();
+
+        let quote = intent.quote.unwrap();
+        assert_eq!(quote.source, "fixed_test");
+        assert_eq!(quote.input_amount, 1.23);
+        assert_eq!(quote.price_impact_bps, 7);
     }
 }

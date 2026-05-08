@@ -92,12 +92,14 @@ flowchart TB
   subgraph Core Crate
     B[create_payment_intent]
     C[evaluate_policy]
-    D[quote_settlement]
+    D[SettlementQuoter]
+    E[MockSettlementQuoter]
   end
 
   A --> B
   B --> C
   B --> D
+  D --> E
 ```
 
 ## 4. Command Interface
@@ -234,8 +236,20 @@ Policy checks are returned as structured entries:
 
 ### quote_settlement
 
-Phase 1 uses fixed mock prices for local development. The shape should resemble
-a future Jupiter quote, but the data is not real.
+Phase 1 uses a `SettlementQuoter` boundary. The CLI injects
+`MockSettlementQuoter`, which uses fixed mock prices for local development. The
+shape should resemble a future Jupiter quote, but the data is not real.
+
+The boundary is intentionally small:
+
+```rust
+pub trait SettlementQuoter {
+    fn quote_settlement(
+        &self,
+        input: &CreatePaymentIntentInput,
+    ) -> Result<SettlementQuote, JupShError>;
+}
+```
 
 Example:
 
@@ -249,6 +263,15 @@ Example:
   "priceImpactBps": 12
 }
 ```
+
+Future replacement:
+
+```txt
+MockSettlementQuoter -> JupiterSettlementQuoter
+```
+
+The intent and policy code should not need to change when real Jupiter quoting is
+introduced.
 
 ## 7. Local Policy File
 

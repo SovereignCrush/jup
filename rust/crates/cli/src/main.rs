@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use jup_sh_core::{
-    CreatePaymentIntentInput, Decision, NextAction, Policy, PolicyCheckStatus, RiskLevel,
-    create_payment_intent,
+    CreatePaymentIntentInput, Decision, MockSettlementQuoter, NextAction, Policy,
+    PolicyCheckStatus, RiskLevel, create_payment_intent_with_quoter,
 };
 use std::{fs, path::PathBuf};
 
@@ -84,7 +84,8 @@ fn run_pay(command: PayCommand) -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("--settle requires amount and token")?
         .clone();
 
-    let intent = create_payment_intent(
+    let quoter = MockSettlementQuoter;
+    let intent = create_payment_intent_with_quoter(
         CreatePaymentIntentInput {
             agent: command.agent,
             pay_token: command.token,
@@ -95,6 +96,7 @@ fn run_pay(command: PayCommand) -> Result<(), Box<dyn std::error::Error>> {
         },
         &policy,
         &command.review_base_url,
+        &quoter,
     )?;
 
     if command.json {
