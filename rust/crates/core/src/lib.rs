@@ -1,0 +1,338 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use thiserror::Error;
+use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum JupShError {
+    #[error("{0} is required")]
+    MissingField(&'static str),
+    #[error("{0} must be a positive number")]
+    InvalidAmount(&'static str),
+    #[error("phase 1 only supports USDC settlement")]
+    UnsupportedSettlementToken,
+    #[error("no mock quote price for token {0}")]
+    MissingMockPrice(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Policy {
+    pub max_auto_settle_usdc: f64,
+    pub max_allowed_settle_usdc: f64,
+    pub verified_tokens: Vec<String>,
+    pub trusted_recipients: Vec<String>,
+    pub review_unknown_recipients: bool,
+}
+
+impl Default for Policy {
+    fn default() -> Self {
+        Self {
+            max_auto_settle_usdc: 5.0,
+            max_allowed_settle_usdc: 100.0,
+            verified_tokens: vec![
+                "USDC".to_string(),
+                "SOL".to_string(),
+                "JUP".to_string(),
+                "BONK".to_string(),
+            ],
+            trusted_recipients: Vec::new(),
+            review_unknown_recipients: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Decision {
+    AutoPay,
+    ReviewRequired,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatePaymentIntentInput {
+    pub agent: String,
+    pub pay_token: String,
+    pub settle_amount: f64,
+    pub settle_token: String,
+    pub recipient: Option<String>,
+    pub reference: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Settlement {
+    pub amount: f64,
+    pub token: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettlementQuote {
+    pub source: String,
+    pub input_token: String,
+    pub input_amount: f64,
+    pub settle_amount: f64,
+    pub settle_token: String,
+    pub price_impact_bps: u16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PolicyResult {
+    pub decision: Decision,
+    pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaymentIntent {
+    pub intent_id: String,
+    pub agent: String,
+    pub pay_token: String,
+    pub recipient: Option<String>,
+    pub reference: Option<String>,
+    pub settlement: Settlement,
+    pub quote: Option<SettlementQuote>,
+    pub decision: Decision,
+    pub reasons: Vec<String>,
+    pub review_url: String,
+    pub created_at: DateTime<Utc>,
+}
+
+pub fn create_payment_intent(
+    input: CreatePaymentIntentInput,
+    policy: &Policy,
+    review_base_url: &str,
+) -> Result<PaymentIntent, JupShError> {
+    let agent = required_string(input.agent, "agent")?;
+    let pay_token = normalize_token(&input.pay_token)?;
+    let settle_token = normalize_token(&input.settle_token)?;
+    let settle_amount = positive_amount(input.settle_amount, "settle_amount")?;
+
+    let normalized = CreatePaymentIntentInput {
+        agent,
+        pay_token,
+        settle_amount,
+        settle_token,
+        recipient: input.recipient,
+        reference: input.reference,
+    };
+
+    let policy_result = evaluate_policy(&normalized, policy)?;
+    let quote = match policy_result.decision {
+        Decision::Rejected => None,
+        _ => Some(quote_settlement(&normalized)?),
+    };
+    let intent_id = format!("intent_{}", Uuid::new_v4().simple());
+    let review_base_url = review_base_url.trim_end_matches('/');
+
+    Ok(PaymentIntent {
+        intent_id: intent_id.clone(),
+        agent: normalized.agent,
+        pay_token: normalized.pay_token,
+        recipient: normalized.recipient,
+        reference: normalized.reference,
+        settlement: Settlement {
+            amount: normalized.settle_amount,
+            token: normalized.settle_token,
+        },
+        quote,
+        decision: policy_result.decision,
+        reasons: policy_result.reasons,
+        review_url: format!("{review_base_url}/pay/{intent_id}"),
+        created_at: Utc::now(),
+    })
+}
+
+pub fn evaluate_policy(
+    input: &CreatePaymentIntentInput,
+    policy: &Policy,
+) -> Result<PolicyResult, JupShError> {
+    let pay_token = normalize_token(&input.pay_token)?;
+    let settle_token = normalize_token(&input.settle_token)?;
+    let settle_amount = positive_amount(input.settle_amount, "settle_amount")?;
+    let verified_tokens = policy
+        .verified_tokens
+        .iter()
+        .map(|token| token.trim().to_uppercase())
+        .collect::<HashSet<_>>();
+
+    if !verified_tokens.contains(&pay_token) {
+        return Ok(PolicyResult {
+            decision: Decision::Rejected,
+            reasons: vec![format!("{pay_token} is not a verified token")],
+        });
+    }
+
+    if settle_token != "USDC" {
+        return Ok(PolicyResult {
+            decision: Decision::Rejected,
+            reasons: vec!["only USDC settlement is supported in Phase 1".to_string()],
+        });
+    }
+
+    if settle_amount > policy.max_allowed_settle_usdc {
+        return Ok(PolicyResult {
+            decision: Decision::Rejected,
+            reasons: vec![format!(
+                "settlement amount exceeds {} USDC",
+                trim_number(policy.max_allowed_settle_usdc)
+            )],
+        });
+    }
+
+    let mut reasons = Vec::new();
+    let trusted_recipients = policy
+        .trusted_recipients
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
+    let recipient = input.recipient.as_deref().unwrap_or_default();
+
+    if policy.review_unknown_recipients
+        && (recipient.is_empty() || !trusted_recipients.contains(recipient))
+    {
+        reasons.push("recipient is not trusted".to_string());
+    }
+
+    if settle_amount > policy.max_auto_settle_usdc {
+        reasons.push(format!(
+            "settlement amount exceeds auto-pay limit of {} USDC",
+            trim_number(policy.max_auto_settle_usdc)
+        ));
+    }
+
+    Ok(PolicyResult {
+        decision: if reasons.is_empty() {
+            Decision::AutoPay
+        } else {
+            Decision::ReviewRequired
+        },
+        reasons,
+    })
+}
+
+pub fn quote_settlement(input: &CreatePaymentIntentInput) -> Result<SettlementQuote, JupShError> {
+    let pay_token = normalize_token(&input.pay_token)?;
+    let settle_token = normalize_token(&input.settle_token)?;
+    let settle_amount = positive_amount(input.settle_amount, "settle_amount")?;
+
+    if settle_token != "USDC" {
+        return Err(JupShError::UnsupportedSettlementToken);
+    }
+
+    let price = mock_price_usdc(&pay_token)
+        .ok_or_else(|| JupShError::MissingMockPrice(pay_token.clone()))?;
+
+    Ok(SettlementQuote {
+        source: "mock_jupiter".to_string(),
+        input_token: pay_token.clone(),
+        input_amount: round_to_8(settle_amount / price),
+        settle_amount,
+        settle_token,
+        price_impact_bps: if pay_token == "USDC" { 0 } else { 12 },
+    })
+}
+
+fn mock_price_usdc(token: &str) -> Option<f64> {
+    match token {
+        "USDC" => Some(1.0),
+        "SOL" => Some(150.0),
+        "JUP" => Some(0.9),
+        "BONK" => Some(0.00002),
+        _ => None,
+    }
+}
+
+fn required_string(value: String, field: &'static str) -> Result<String, JupShError> {
+    let value = value.trim().to_string();
+    if value.is_empty() {
+        return Err(JupShError::MissingField(field));
+    }
+    Ok(value)
+}
+
+fn normalize_token(token: &str) -> Result<String, JupShError> {
+    let token = token.trim().to_uppercase();
+    if token.is_empty() {
+        return Err(JupShError::MissingField("token"));
+    }
+    Ok(token)
+}
+
+fn positive_amount(value: f64, field: &'static str) -> Result<f64, JupShError> {
+    if !value.is_finite() || value <= 0.0 {
+        return Err(JupShError::InvalidAmount(field));
+    }
+    Ok(value)
+}
+
+fn round_to_8(value: f64) -> f64 {
+    (value * 100_000_000.0).round() / 100_000_000.0
+}
+
+fn trim_number(value: f64) -> String {
+    if value.fract() == 0.0 {
+        format!("{value:.0}")
+    } else {
+        value.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn input(settle_amount: f64) -> CreatePaymentIntentInput {
+        CreatePaymentIntentInput {
+            agent: "claude".to_string(),
+            pay_token: "SOL".to_string(),
+            settle_amount,
+            settle_token: "USDC".to_string(),
+            recipient: Some("trusted-demo".to_string()),
+            reference: None,
+        }
+    }
+
+    #[test]
+    fn policy_allows_small_trusted_payment() {
+        let policy = Policy {
+            trusted_recipients: vec!["trusted-demo".to_string()],
+            ..Policy::default()
+        };
+
+        let result = evaluate_policy(&input(2.0), &policy).unwrap();
+
+        assert!(matches!(result.decision, Decision::AutoPay));
+        assert!(result.reasons.is_empty());
+    }
+
+    #[test]
+    fn policy_requires_review_for_large_payment() {
+        let policy = Policy {
+            trusted_recipients: vec!["trusted-demo".to_string()],
+            ..Policy::default()
+        };
+
+        let result = evaluate_policy(&input(20.0), &policy).unwrap();
+
+        assert!(matches!(result.decision, Decision::ReviewRequired));
+        assert_eq!(result.reasons.len(), 1);
+    }
+
+    #[test]
+    fn policy_rejects_unverified_token() {
+        let policy = Policy::default();
+        let mut request = input(2.0);
+        request.pay_token = "FAKE".to_string();
+
+        let result = evaluate_policy(&request, &policy).unwrap();
+
+        assert!(matches!(result.decision, Decision::Rejected));
+        assert_eq!(result.reasons, vec!["FAKE is not a verified token"]);
+    }
+}

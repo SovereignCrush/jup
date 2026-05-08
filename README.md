@@ -15,7 +15,8 @@ Policy decides when humans step in.
 
 ## Status
 
-This repository currently contains a static V1 product prototype.
+This repository currently contains a static V1 product prototype and an early
+local Rust CLI prototype.
 
 It is not a production payment system and does not execute real payments yet.
 
@@ -33,7 +34,7 @@ agent payments.
 The intended flow:
 
 ```txt
-agent intent -> policy check -> auto pay or risk review -> Jupiter route -> USDC settlement
+agent intent -> policy decision -> Jupiter settlement -> authorize or review
 ```
 
 The default path should be automatic. Human review should appear only when
@@ -53,7 +54,19 @@ V1 includes:
 Current demo command:
 
 ```bash
-pay --agent claude --token SOL --settle 20 USDC
+jup-sh pay --agent claude --token SOL --settle 20 USDC
+```
+
+Run the local CLI from source:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+```
+
+JSON output for agents or scripts:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC --json
 ```
 
 ## Local Development

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
-    "check": "node --check app.js && node --check server.js",
+    "check": "node --check app.js && node --check server.js && cd rust && cargo check",
+    "cli": "cd rust && cargo run --",
     "deploy": "wrangler pages deploy . --project-name=jup-sh"
   },
   "devDependencies": {
