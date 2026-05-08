@@ -100,7 +100,7 @@ The CLI returns a structured local payment intent with:
 - `decision`: `auto_pay`, `review_required`, or `rejected`.
 - `nextAction`: `ready_for_authorization`, `open_review`, or `rejected`.
 - `riskLevel`: `low`, `medium`, or `high`.
-- `policyChecks`: deterministic local policy checks for agents and humans.
+- `policyChecks`: deterministic local checks over intent fields and quote risk.
 
 Example policy override:
 
@@ -108,6 +108,8 @@ Example policy override:
 {
   "maxAutoSettleUSDC": 10,
   "maxAllowedSettleUSDC": 250,
+  "maxPriceImpactBps": 100,
+  "reviewHighPriceImpact": true,
   "verifiedTokens": ["USDC", "SOL", "JUP", "BONK"],
   "trustedRecipients": ["jup-sh-demo"],
   "reviewUnknownRecipients": true

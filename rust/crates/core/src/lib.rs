@@ -25,9 +25,21 @@ pub struct Policy {
     pub max_auto_settle_usdc: f64,
     #[serde(rename = "maxAllowedSettleUSDC")]
     pub max_allowed_settle_usdc: f64,
+    #[serde(rename = "maxPriceImpactBps", default = "default_max_price_impact_bps")]
+    pub max_price_impact_bps: u16,
+    #[serde(default = "default_review_high_price_impact")]
+    pub review_high_price_impact: bool,
     pub verified_tokens: Vec<String>,
     pub trusted_recipients: Vec<String>,
     pub review_unknown_recipients: bool,
+}
+
+fn default_max_price_impact_bps() -> u16 {
+    100
+}
+
+fn default_review_high_price_impact() -> bool {
+    true
 }
 
 impl Default for Policy {
@@ -35,6 +47,8 @@ impl Default for Policy {
         Self {
             max_auto_settle_usdc: 5.0,
             max_allowed_settle_usdc: 100.0,
+            max_price_impact_bps: default_max_price_impact_bps(),
+            review_high_price_impact: default_review_high_price_impact(),
             verified_tokens: vec![
                 "USDC".to_string(),
                 "SOL".to_string(),
@@ -201,12 +215,17 @@ pub fn create_payment_intent_with_quoter(
         reference: input.reference,
     };
 
-    let policy_result = evaluate_policy(&normalized, policy)?;
-    let status = intent_status_for_decision(&policy_result.decision);
-    let quote = match &policy_result.decision {
-        Decision::Rejected => None,
-        _ => Some(quoter.quote_settlement(&normalized)?),
+    let pre_policy_result = evaluate_policy(&normalized, policy)?;
+    let (quote, policy_result) = match &pre_policy_result.decision {
+        Decision::Rejected => (None, pre_policy_result),
+        _ => {
+            let quote = quoter.quote_settlement(&normalized)?;
+            let mut checks = pre_policy_result.checks;
+            checks.extend(evaluate_quote_policy(&quote, policy));
+            (Some(quote), policy_result_from_checks(checks))
+        }
     };
+    let status = intent_status_for_decision(&policy_result.decision);
     let intent_id = format!("intent_{}", Uuid::new_v4().simple());
     let review_base_url = review_base_url.trim_end_matches('/');
 
@@ -341,6 +360,65 @@ pub fn evaluate_policy(
         )
     });
 
+    Ok(policy_result_from_checks(checks))
+}
+
+pub fn evaluate_quote_policy(quote: &SettlementQuote, policy: &Policy) -> Vec<PolicyCheck> {
+    let mut checks = Vec::new();
+
+    checks.push(policy_check(
+        "quote_available",
+        PolicyCheckStatus::Pass,
+        format!("{} quote is available", quote.source),
+    ));
+
+    checks.push(if quote.settle_token == "USDC" {
+        policy_check(
+            "quote_settlement_token",
+            PolicyCheckStatus::Pass,
+            "quote settles to USDC",
+        )
+    } else {
+        policy_check(
+            "quote_settlement_token",
+            PolicyCheckStatus::Reject,
+            format!("quote settles to unsupported token {}", quote.settle_token),
+        )
+    });
+
+    checks.push(if quote.price_impact_bps <= policy.max_price_impact_bps {
+        policy_check(
+            "quote_price_impact",
+            PolicyCheckStatus::Pass,
+            format!(
+                "quote price impact is {} bps, within the {} bps policy limit",
+                quote.price_impact_bps, policy.max_price_impact_bps
+            ),
+        )
+    } else if policy.review_high_price_impact {
+        policy_check(
+            "quote_price_impact",
+            PolicyCheckStatus::Review,
+            format!(
+                "quote price impact is {} bps, above the {} bps policy limit",
+                quote.price_impact_bps, policy.max_price_impact_bps
+            ),
+        )
+    } else {
+        policy_check(
+            "quote_price_impact",
+            PolicyCheckStatus::Pass,
+            format!(
+                "quote price impact is {} bps; high price impact review is disabled",
+                quote.price_impact_bps
+            ),
+        )
+    });
+
+    checks
+}
+
+fn policy_result_from_checks(checks: Vec<PolicyCheck>) -> PolicyResult {
     let reasons = checks
         .iter()
         .filter(|check| check.status != PolicyCheckStatus::Pass)
@@ -360,13 +438,13 @@ pub fn evaluate_policy(
         Decision::AutoPay
     };
 
-    Ok(PolicyResult {
+    PolicyResult {
         next_action: next_action_for_decision(&decision),
         risk_level: risk_level_for_decision(&decision),
         decision,
         reasons,
         checks,
-    })
+    }
 }
 
 pub fn quote_settlement(input: &CreatePaymentIntentInput) -> Result<SettlementQuote, JupShError> {
@@ -483,6 +561,9 @@ mod tests {
     #[derive(Debug)]
     struct FixedQuoter;
 
+    #[derive(Debug)]
+    struct HighImpactQuoter;
+
     impl SettlementQuoter for FixedQuoter {
         fn quote_settlement(
             &self,
@@ -495,6 +576,22 @@ mod tests {
                 settle_amount: input.settle_amount,
                 settle_token: input.settle_token.clone(),
                 price_impact_bps: 7,
+            })
+        }
+    }
+
+    impl SettlementQuoter for HighImpactQuoter {
+        fn quote_settlement(
+            &self,
+            input: &CreatePaymentIntentInput,
+        ) -> Result<SettlementQuote, JupShError> {
+            Ok(SettlementQuote {
+                source: "high_impact_test".to_string(),
+                input_token: input.pay_token.clone(),
+                input_amount: 1.23,
+                settle_amount: input.settle_amount,
+                settle_token: input.settle_token.clone(),
+                price_impact_bps: 250,
             })
         }
     }
@@ -583,6 +680,9 @@ mod tests {
         assert_eq!(quote.source, "fixed_test");
         assert_eq!(quote.input_amount, 1.23);
         assert_eq!(quote.price_impact_bps, 7);
+        assert!(intent.policy_checks.iter().any(|check| {
+            check.name == "quote_price_impact" && check.status == PolicyCheckStatus::Pass
+        }));
     }
 
     #[test]
@@ -613,5 +713,31 @@ mod tests {
         .unwrap();
         assert_eq!(rejected.status, IntentStatus::Rejected);
         assert!(rejected.quote.is_none());
+    }
+
+    #[test]
+    fn high_quote_price_impact_requires_review() {
+        let policy = Policy {
+            trusted_recipients: vec!["trusted-demo".to_string()],
+            max_price_impact_bps: 100,
+            ..Policy::default()
+        };
+
+        let intent = create_payment_intent_with_quoter(
+            input(2.0),
+            &policy,
+            "https://jup.sh",
+            &HighImpactQuoter,
+        )
+        .unwrap();
+
+        assert_eq!(intent.status, IntentStatus::ReviewRequired);
+        assert!(matches!(intent.decision, Decision::ReviewRequired));
+        assert!(intent.reasons.contains(
+            &"quote price impact is 250 bps, above the 100 bps policy limit".to_string()
+        ));
+        assert!(intent.policy_checks.iter().any(|check| {
+            check.name == "quote_price_impact" && check.status == PolicyCheckStatus::Review
+        }));
     }
 }

@@ -6,7 +6,7 @@ can run.
 The goal is intentionally narrow:
 
 ```txt
-agent intent -> policy decision -> mock Jupiter settlement quote -> local intent record -> review URL
+agent intent -> pre-policy -> settlement quote -> quote policy -> local intent record -> review URL
 ```
 
 Phase 1 does not sign transactions, custody funds, submit swaps, or execute real
@@ -211,6 +211,8 @@ Default policy:
 {
   "maxAutoSettleUSDC": 5,
   "maxAllowedSettleUSDC": 100,
+  "maxPriceImpactBps": 100,
+  "reviewHighPriceImpact": true,
   "verifiedTokens": ["USDC", "SOL", "JUP", "BONK"],
   "trustedRecipients": [],
   "reviewUnknownRecipients": true
@@ -258,6 +260,18 @@ Policy checks are returned as structured entries:
   "message": "recipient is not trusted"
 }
 ```
+
+Quote-aware policy checks are appended after a settlement quote is available:
+
+```json
+{
+  "name": "quote_price_impact",
+  "status": "review",
+  "message": "quote price impact is 250 bps, above the 100 bps policy limit"
+}
+```
+
+Rejected pre-policy intents do not request a quote.
 
 ### quote_settlement
 
@@ -331,6 +345,8 @@ Example:
 {
   "maxAutoSettleUSDC": 10,
   "maxAllowedSettleUSDC": 250,
+  "maxPriceImpactBps": 100,
+  "reviewHighPriceImpact": true,
   "verifiedTokens": ["USDC", "SOL", "JUP", "BONK"],
   "trustedRecipients": ["jup-sh-demo"],
   "reviewUnknownRecipients": true
@@ -350,6 +366,7 @@ Intent: intent_...
 Agent: claude
 Pay with: SOL
 Settle: 20 USDC
+Status: review_required
 Decision: review_required
 Next action: open_review
 Risk: medium
@@ -357,6 +374,7 @@ Reason: recipient is not trusted
 Policy checks:
 - [pass] verified_token: SOL is verified
 - [review] recipient_trust: recipient is not trusted
+- [pass] quote_price_impact: quote price impact is 12 bps, within the 100 bps policy limit
 Review: https://jup.sh/pay/intent_...
 Saved: .jup-sh/intents/intent_....json
 ```

@@ -123,6 +123,7 @@ V1 includes:
 - Structured policy output for agents and humans.
 - A `SettlementQuoter` boundary with a mock Jupiter-style quoter.
 - Optional quote-only Jupiter settlement estimates through `--quote-provider jupiter`.
+- Quote-aware risk checks for settlement token and price impact.
 - Local intent persistence under `.jup-sh/intents`.
 - `intent list` and `intent show` for reading saved local intents.
 
@@ -145,16 +146,17 @@ step on Solana using a verified token.
 Expected product flow:
 
 1. Agent creates a USDC-denominated payment intent.
-2. jup.sh checks policy and risk.
-3. If policy passes, jup.sh asks Jupiter API for a token-to-USDC settlement route.
-4. The clean path continues to local wallet authorization or the configured signing layer.
-5. If policy flags the payment, jup.sh opens Risk Review.
-6. Recipient receives USDC after settlement.
+2. jup.sh checks pre-quote policy and risk.
+3. If pre-policy passes, jup.sh asks Jupiter API for a token-to-USDC settlement route.
+4. jup.sh applies quote-aware policy checks such as price impact.
+5. The clean path continues to local wallet authorization or the configured signing layer.
+6. If policy flags the payment, jup.sh opens Risk Review.
+7. Recipient receives USDC after settlement.
 
 Short version:
 
 ```txt
-agent intent -> policy decision -> Jupiter settlement -> authorize or review
+agent intent -> pre-policy -> Jupiter settlement -> quote policy -> authorize or review
 ```
 
 ## 6. Policy as the First Risk Engine
@@ -171,6 +173,7 @@ Example policy shape:
   "verifiedTokensOnly": true,
   "allowedTokens": ["SOL", "USDC", "BONK"],
   "maxSlippageBps": 50,
+  "maxPriceImpactBps": 100,
   "reviewNewRecipients": true,
   "reviewHighPriceImpact": true,
   "reviewUnknownAgents": true

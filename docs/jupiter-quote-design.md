@@ -24,6 +24,12 @@ jup-sh pay \
 The CLI asks Jupiter for the estimated input amount needed to settle the target
 USDC amount. It still only creates a local payment intent.
 
+The quote is now a risk input, not only display data:
+
+```txt
+intent -> pre-policy -> Jupiter quote -> quote policy -> final status
+```
+
 ## Current Boundary
 
 The core crate already owns the quote boundary:
@@ -96,6 +102,28 @@ The returned `PaymentIntent.quote` keeps the existing product shape:
 }
 ```
 
+## Quote Policy
+
+After a quote is available, jup.sh appends quote-aware policy checks:
+
+| Check | Meaning |
+| --- | --- |
+| `quote_available` | The quote provider returned a usable quote. |
+| `quote_settlement_token` | The quote still settles to USDC. |
+| `quote_price_impact` | The quote price impact is within policy or requires review. |
+
+Default policy:
+
+```json
+{
+  "maxPriceImpactBps": 100,
+  "reviewHighPriceImpact": true
+}
+```
+
+If `priceImpactBps` exceeds `maxPriceImpactBps`, the intent becomes
+`review_required` unless high price impact review is disabled.
+
 ## Non-Goals
 
 This phase does not:
@@ -109,7 +137,7 @@ This phase does not:
 
 ## Next Steps
 
-1. Add route quality and liquidity policy checks.
+1. Add route quality and liquidity policy checks beyond price impact.
 2. Store quote metadata needed by Risk Review.
 3. Add verified token registry support.
 4. Generate Solana Pay transaction requests after quote behavior is stable.
