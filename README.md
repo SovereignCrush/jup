@@ -63,6 +63,19 @@ Run the local CLI from source:
 npm run cli -- pay --agent claude --token SOL --settle 20 USDC
 ```
 
+The command saves the generated intent locally:
+
+```txt
+.jup-sh/intents/<intent_id>.json
+```
+
+Show a saved intent:
+
+```bash
+npm run cli -- intent show intent_xxx
+npm run cli -- intent show intent_xxx --json
+```
+
 JSON output for agents or scripts:
 
 ```bash

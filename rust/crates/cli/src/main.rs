@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use jup_sh_core::{
-    CreatePaymentIntentInput, Decision, MockSettlementQuoter, NextAction, Policy,
+    CreatePaymentIntentInput, Decision, MockSettlementQuoter, NextAction, PaymentIntent, Policy,
     PolicyCheckStatus, RiskLevel, create_payment_intent_with_quoter,
 };
 use std::{fs, path::PathBuf};
@@ -17,6 +17,8 @@ struct Cli {
 enum Command {
     /// Create a local agent payment intent.
     Pay(PayCommand),
+    /// Read local payment intents.
+    Intent(IntentCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -52,6 +54,36 @@ struct PayCommand {
     /// Optional policy file. Defaults to ./jup.policy.json when present.
     #[arg(long)]
     policy: Option<PathBuf>,
+
+    /// Intent storage directory.
+    #[arg(long)]
+    store: Option<PathBuf>,
+}
+
+#[derive(Debug, Parser)]
+struct IntentCommand {
+    #[command(subcommand)]
+    command: IntentSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum IntentSubcommand {
+    /// Show a locally saved payment intent.
+    Show(IntentShowCommand),
+}
+
+#[derive(Debug, Parser)]
+struct IntentShowCommand {
+    /// Intent ID, for example intent_abc123.
+    intent_id: String,
+
+    /// Print JSON only.
+    #[arg(long)]
+    json: bool,
+
+    /// Intent storage directory.
+    #[arg(long)]
+    store: Option<PathBuf>,
 }
 
 fn main() {
@@ -66,6 +98,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.command {
         Command::Pay(command) => run_pay(command)?,
+        Command::Intent(command) => run_intent(command)?,
     }
 
     Ok(())
@@ -98,6 +131,26 @@ fn run_pay(command: PayCommand) -> Result<(), Box<dyn std::error::Error>> {
         &command.review_base_url,
         &quoter,
     )?;
+    let path = save_intent(&intent, command.store.as_ref())?;
+
+    if command.json {
+        println!("{}", serde_json::to_string_pretty(&intent)?);
+    } else {
+        print_human(&intent);
+        println!("Saved: {}", path.display());
+    }
+
+    Ok(())
+}
+
+fn run_intent(command: IntentCommand) -> Result<(), Box<dyn std::error::Error>> {
+    match command.command {
+        IntentSubcommand::Show(command) => run_intent_show(command),
+    }
+}
+
+fn run_intent_show(command: IntentShowCommand) -> Result<(), Box<dyn std::error::Error>> {
+    let intent = load_intent(&command.intent_id, command.store.as_ref())?;
 
     if command.json {
         println!("{}", serde_json::to_string_pretty(&intent)?);
@@ -123,7 +176,33 @@ fn load_policy(path: Option<&PathBuf>) -> Result<Policy, Box<dyn std::error::Err
     }
 }
 
-fn print_human(intent: &jup_sh_core::PaymentIntent) {
+fn save_intent(
+    intent: &PaymentIntent,
+    store: Option<&PathBuf>,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let dir = intent_store_dir(store);
+    fs::create_dir_all(&dir)?;
+    let path = dir.join(format!("{}.json", intent.intent_id));
+    fs::write(&path, serde_json::to_string_pretty(intent)?)?;
+    Ok(path)
+}
+
+fn load_intent(
+    intent_id: &str,
+    store: Option<&PathBuf>,
+) -> Result<PaymentIntent, Box<dyn std::error::Error>> {
+    let path = intent_store_dir(store).join(format!("{intent_id}.json"));
+    let content = fs::read_to_string(path)?;
+    Ok(serde_json::from_str(&content)?)
+}
+
+fn intent_store_dir(store: Option<&PathBuf>) -> PathBuf {
+    store
+        .cloned()
+        .unwrap_or_else(|| PathBuf::from(".jup-sh").join("intents"))
+}
+
+fn print_human(intent: &PaymentIntent) {
     println!("jup.sh payment intent");
     println!();
     println!("Intent: {}", intent.intent_id);

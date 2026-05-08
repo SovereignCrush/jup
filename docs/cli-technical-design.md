@@ -6,7 +6,7 @@ can run.
 The goal is intentionally narrow:
 
 ```txt
-agent intent -> policy decision -> mock Jupiter settlement quote -> review URL
+agent intent -> policy decision -> mock Jupiter settlement quote -> local intent record -> review URL
 ```
 
 Phase 1 does not sign transactions, custody funds, submit swaps, or execute real
@@ -74,10 +74,11 @@ flowchart LR
   C --> E[Mock Settlement Quote]
   D --> F{Decision}
   E --> F
-  F -->|auto_pay| G[Local result]
-  F -->|review_required| H[Risk Review URL]
-  F -->|rejected| I[Rejected result]
-  H --> J[jup.sh Risk Review page]
+  F --> G[Local intent JSON]
+  G -->|auto_pay| H[Local result]
+  G -->|review_required| I[Risk Review URL]
+  G -->|rejected| J[Rejected result]
+  I --> K[jup.sh Risk Review page]
 ```
 
 The CLI owns command parsing and terminal output. The core crate owns the
@@ -121,6 +122,14 @@ Options:
 | `--reference` | no | External reference or memo. |
 | `--json` | no | Print JSON only. |
 | `--review-base-url` | no | Defaults to `https://jup.sh`. |
+| `--store` | no | Intent storage directory. Defaults to `.jup-sh/intents`. |
+
+Show a saved intent:
+
+```bash
+jup-sh intent show intent_abc123
+jup-sh intent show intent_abc123 --json
+```
 
 ## 5. Rust Workspace
 
@@ -273,7 +282,26 @@ MockSettlementQuoter -> JupiterSettlementQuoter
 The intent and policy code should not need to change when real Jupiter quoting is
 introduced.
 
-## 7. Local Policy File
+## 7. Local Intent Store
+
+The CLI saves every generated intent to:
+
+```txt
+.jup-sh/intents/<intent_id>.json
+```
+
+This keeps Phase 1 local while making the review URL's intent ID inspectable.
+
+The CLI can read a saved intent:
+
+```bash
+jup-sh intent show intent_abc123
+```
+
+`--store <dir>` can override the default intent directory for tests or custom
+local workflows.
+
+## 8. Local Policy File
 
 The CLI may load `jup.policy.json` from the current working directory.
 
@@ -291,7 +319,7 @@ Example:
 
 If no local file exists, the CLI uses the default policy.
 
-## 8. Output Rules
+## 9. Output Rules
 
 Default output should be readable:
 
@@ -310,11 +338,12 @@ Policy checks:
 - [pass] verified_token: SOL is verified
 - [review] recipient_trust: recipient is not trusted
 Review: https://jup.sh/pay/intent_...
+Saved: .jup-sh/intents/intent_....json
 ```
 
 `--json` prints only JSON for agent and script usage.
 
-## 9. Future Phases
+## 10. Future Phases
 
 Phase 2:
 
