@@ -193,24 +193,41 @@ function renderHome() {
     <section class="pay-sh-split">
       <div>
         <span class="section-kicker">How it works</span>
-        <h2>Create the intent. Check policy. Pay or review.</h2>
+        <h2>Intent. Policy. Settlement.</h2>
+        <p>
+          Agents never receive private keys. They submit a structured payment
+          intent; jup.sh evaluates policy, asks Jupiter for settlement, then
+          continues to wallet authorization or Risk Review.
+        </p>
       </div>
-      <div class="rail-grid">
-        <article>
-          <strong>Intent</strong>
-          <span>Agents create a payment intent through jup.sh.</span>
+      <div class="flow-stack">
+        <article class="flow-step">
+          <span class="flow-index">01</span>
+          <div>
+            <strong>Agent intent</strong>
+            <span>Agent, token, amount, recipient, and reference are captured in one structured request.</span>
+          </div>
         </article>
-        <article>
-          <strong>Policy</strong>
-          <span>Amount, token, recipient, route, frequency, and limits are checked.</span>
+        <article class="flow-step">
+          <span class="flow-index">02</span>
+          <div>
+            <strong>Policy decision</strong>
+            <span>Limits, token verification, recipient history, route quality, and behavior are checked.</span>
+          </div>
         </article>
-        <article>
-          <strong>Auto Pay</strong>
-          <span>Payments inside policy continue without opening a review page.</span>
+        <article class="flow-step">
+          <span class="flow-index">03</span>
+          <div>
+            <strong>Jupiter settlement</strong>
+            <span>Allowed payments use Jupiter API to quote the payer token into USDC settlement.</span>
+          </div>
         </article>
-        <article>
-          <strong>Risk Review</strong>
-          <span>Flagged payments show amount, route, recipient, and reference.</span>
+        <article class="flow-step">
+          <span class="flow-index">04</span>
+          <div>
+            <strong>Authorize or review</strong>
+            <span>Clean intents continue to wallet authorization. Flagged intents open Risk Review.</span>
+          </div>
         </article>
       </div>
     </section>
@@ -391,7 +408,7 @@ function renderDocs() {
             Jupiter routing and a policy gate to produce a safe Solana agent
             payment flow.
           </p>
-          <div class="code-card">agent intent -> policy check -> auto pay or risk review -> USDC settlement</div>
+          <div class="code-card">agent intent -> policy decision -> Jupiter settlement -> authorize or review</div>
         </section>
 
         <section id="api" class="doc-section">
@@ -416,9 +433,9 @@ function renderDocs() {
           <ul class="doc-list">
             <li>Agent creates a USDC-denominated payment intent.</li>
             <li>Policy checks amount, daily limits, token verification, route quality, recipient, and frequency.</li>
-            <li>Payments inside policy can proceed automatically.</li>
+            <li>Payments inside policy continue to local wallet authorization.</li>
             <li>Risk Review appears for flagged payments such as new recipients or high slippage.</li>
-            <li>Jupiter API routes the payer's verified token into USDC.</li>
+            <li>Jupiter API quotes and routes the payer's verified token into USDC settlement.</li>
           </ul>
         </section>
 

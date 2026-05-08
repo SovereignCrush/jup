@@ -138,15 +138,15 @@ Expected product flow:
 
 1. Agent creates a USDC-denominated payment intent.
 2. jup.sh checks policy and risk.
-3. If policy passes, Auto Pay continues.
-4. If policy flags the payment, jup.sh opens Risk Review.
-5. Jupiter API routes the payer token toward USDC.
-6. Recipient receives USDC.
+3. If policy passes, jup.sh asks Jupiter API for a token-to-USDC settlement route.
+4. The clean path continues to local wallet authorization or the configured signing layer.
+5. If policy flags the payment, jup.sh opens Risk Review.
+6. Recipient receives USDC after settlement.
 
 Short version:
 
 ```txt
-agent intent -> policy check -> auto pay or risk review -> Jupiter route -> USDC settlement
+agent intent -> policy decision -> Jupiter settlement -> authorize or review
 ```
 
 ## 6. Policy as the First Risk Engine

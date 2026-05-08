@@ -2017,6 +2017,48 @@ body.light-route {
   color: #a1a1aa;
 }
 
+.flow-stack {
+  display: grid;
+  gap: 0;
+  border: 1px solid #242428;
+  background: #0c0c0f;
+}
+
+.flow-step {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 18px;
+  min-height: 108px;
+  padding: 22px 24px;
+  border-top: 1px solid #242428;
+}
+
+.flow-step:first-child {
+  border-top: 0;
+}
+
+.flow-index {
+  color: #a78bfa;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.flow-step strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #fafafa;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.flow-step span:last-child {
+  display: block;
+  color: #a1a1aa;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
 .light-route .primary-btn {
   min-height: 44px;
   border-radius: 4px;
