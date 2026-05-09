@@ -171,6 +171,7 @@ Local TypeScript SDK example:
 ```bash
 npm run sdk:check
 npm run sdk:smoke
+npm run sdk:jupiter:live
 ```
 
 ```ts
@@ -183,6 +184,27 @@ const intent = await createPaymentIntent({
   settle: "USDC",
 });
 ```
+
+SDK Jupiter quote-only provider:
+
+```ts
+import { createJupiterQuoteProvider, createPaymentIntent } from "./sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    quoteProvider: createJupiterQuoteProvider(),
+  }
+);
+```
+
+`sdk:jupiter:live` is skipped by default. Set `JUP_SH_LIVE_JUPITER=1` to call
+Jupiter's quote API.
 
 Alpha wrapper smoke test:
 

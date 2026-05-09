@@ -82,6 +82,25 @@ export type SettlementQuoter = {
   quoteSettlement(input: NormalizedPaymentIntentInput): Promise<SettlementQuote> | SettlementQuote;
 };
 
+export type FetchLike = (
+  input: string | URL,
+  init?: {
+    headers?: Record<string, string>;
+  }
+) => Promise<{
+  ok: boolean;
+  status: number;
+  statusText: string;
+  json(): Promise<unknown>;
+}>;
+
+export type JupiterQuoteProviderOptions = {
+  quoteUrl?: string;
+  apiKey?: string;
+  slippageBps?: number;
+  fetch?: FetchLike;
+};
+
 export type CreatePaymentIntentOptions = {
   policy?: Partial<Policy>;
   quoteProvider?: SettlementQuoter;
@@ -105,6 +124,31 @@ const MOCK_PRICES_USDC: Record<string, number> = {
   SOL: 150,
   JUP: 1.2,
   BONK: 0.00002,
+};
+
+const JUPITER_QUOTE_URL = "https://api.jup.ag/swap/v1/quote";
+
+const TOKEN_METADATA: Record<string, { symbol: string; mint: string; decimals: number }> = {
+  SOL: {
+    symbol: "SOL",
+    mint: "So11111111111111111111111111111111111111112",
+    decimals: 9,
+  },
+  USDC: {
+    symbol: "USDC",
+    mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    decimals: 6,
+  },
+  JUP: {
+    symbol: "JUP",
+    mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    decimals: 6,
+  },
+  BONK: {
+    symbol: "BONK",
+    mint: "DezXAZ8z7PnrnRJjz3my2u6r5KiL3HR8APpPB2634B2",
+    decimals: 5,
+  },
 };
 
 export async function createPaymentIntent(
@@ -206,6 +250,67 @@ export function evaluatePolicy(input: NormalizedPaymentIntentInput, policy: Poli
 export const mockSettlementQuoter: SettlementQuoter = {
   quoteSettlement: createMockSettlementQuote,
 };
+
+export function createJupiterQuoteProvider(
+  options: JupiterQuoteProviderOptions = {}
+): SettlementQuoter {
+  const quoteUrl = options.quoteUrl ?? JUPITER_QUOTE_URL;
+  const slippageBps = options.slippageBps ?? 50;
+  const fetchImpl = options.fetch ?? globalThis.fetch;
+
+  if (!fetchImpl) {
+    throw new Error("Jupiter quote provider requires fetch");
+  }
+
+  return {
+    async quoteSettlement(input) {
+      const inputToken = TOKEN_METADATA[input.payToken];
+      const settleToken = TOKEN_METADATA[input.settleToken];
+
+      if (!inputToken) {
+        throw new Error(`Jupiter quote token is not configured: ${input.payToken}`);
+      }
+      if (!settleToken) {
+        throw new Error(`Jupiter quote token is not configured: ${input.settleToken}`);
+      }
+      if (settleToken.symbol !== "USDC") {
+        throw new Error("Jupiter quote provider currently supports USDC settlement only");
+      }
+
+      const url = new URL(quoteUrl);
+      url.searchParams.set("inputMint", inputToken.mint);
+      url.searchParams.set("outputMint", settleToken.mint);
+      url.searchParams.set("amount", toRawAmount(input.settleAmount, settleToken.decimals));
+      url.searchParams.set("slippageBps", String(slippageBps));
+      url.searchParams.set("swapMode", "ExactOut");
+
+      const headers = options.apiKey ? { "x-api-key": options.apiKey } : undefined;
+      const response = await fetchImpl(url, { headers });
+
+      if (!response.ok) {
+        throw new Error(`Jupiter quote failed: ${response.status} ${response.statusText}`);
+      }
+
+      const quote = parseJupiterQuoteResponse(await response.json());
+
+      if (quote.inputMint !== inputToken.mint) {
+        throw new Error("Jupiter quote returned a different input mint");
+      }
+      if (quote.outputMint !== settleToken.mint) {
+        throw new Error("Jupiter quote returned a different output mint");
+      }
+
+      return {
+        source: "jupiter_swap_exact_out",
+        inputToken: inputToken.symbol,
+        inputAmount: fromRawAmount(quote.inAmount, inputToken.decimals),
+        settleAmount: fromRawAmount(quote.outAmount, settleToken.decimals),
+        settleToken: settleToken.symbol,
+        priceImpactBps: priceImpactBps(quote.priceImpactPct),
+      };
+    },
+  };
+}
 
 export function createMockSettlementQuote(input: NormalizedPaymentIntentInput): SettlementQuote {
   const price = MOCK_PRICES_USDC[input.payToken];
@@ -353,4 +458,55 @@ function trimNumber(value: number): string {
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+}
+
+function toRawAmount(amount: number, decimals: number): string {
+  return String(Math.round(amount * 10 ** decimals));
+}
+
+function fromRawAmount(raw: string, decimals: number): number {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    throw new Error(`invalid raw amount: ${raw}`);
+  }
+
+  return value / 10 ** decimals;
+}
+
+function priceImpactBps(value: string): number {
+  const impact = Math.abs(Number(value));
+  if (!Number.isFinite(impact)) {
+    throw new Error(`invalid price impact: ${value}`);
+  }
+
+  return Math.round(Math.min(impact * 10_000, 65_535));
+}
+
+function parseJupiterQuoteResponse(value: unknown): {
+  inAmount: string;
+  outAmount: string;
+  inputMint: string;
+  outputMint: string;
+  priceImpactPct: string;
+} {
+  if (!value || typeof value !== "object") {
+    throw new Error("Jupiter quote response must be an object");
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return {
+    inAmount: requiredResponseString(candidate.inAmount, "inAmount"),
+    outAmount: requiredResponseString(candidate.outAmount, "outAmount"),
+    inputMint: requiredResponseString(candidate.inputMint, "inputMint"),
+    outputMint: requiredResponseString(candidate.outputMint, "outputMint"),
+    priceImpactPct: requiredResponseString(candidate.priceImpactPct, "priceImpactPct"),
+  };
+}
+
+function requiredResponseString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Jupiter quote response missing ${field}`);
+  }
+
+  return value;
 }

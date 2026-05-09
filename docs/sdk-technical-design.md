@@ -84,11 +84,37 @@ type CreatePaymentIntentOptions = {
   policy?: Partial<Policy>;
   quoteProvider?: SettlementQuoter;
   reviewBaseUrl?: string;
+  now?: () => Date;
+  idFactory?: () => string;
 };
 ```
 
 The default quote provider is a mock provider. Jupiter-backed quotes should be
-added behind the same `SettlementQuoter` boundary later.
+available behind the same `SettlementQuoter` boundary.
+
+### createJupiterQuoteProvider
+
+```ts
+createJupiterQuoteProvider(options?): SettlementQuoter
+```
+
+The Jupiter provider uses quote-only `ExactOut` mode to estimate the payer token
+amount required to settle the requested USDC amount. It does not request swap
+transactions or execute routes.
+
+```ts
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    quoteProvider: createJupiterQuoteProvider(),
+  }
+);
+```
 
 ### evaluatePolicy
 
@@ -173,6 +199,7 @@ The first SDK implementation should include:
 - default policy;
 - local deterministic policy checks;
 - mock settlement quote;
+- Jupiter quote-only provider;
 - `createPaymentIntent`;
 - Node example;
 - typecheck in the release gate.
@@ -183,16 +210,14 @@ It should not include:
 - bundled build output;
 - wallet signing;
 - Solana transaction requests;
-- Jupiter HTTP calls;
 - hosted backend API calls.
 
 ## Future Phase
 
 Once the local SDK surface is stable:
 
-1. Add a Jupiter quote provider.
-2. Add SDK docs and examples for Risk Review.
-3. Decide whether npm package export should include CLI, SDK, or separate
+1. Add SDK docs and examples for Risk Review.
+2. Decide whether npm package export should include CLI, SDK, or separate
    packages.
-4. Add transaction request creation only after policy and quote behavior are
+3. Add transaction request creation only after policy and quote behavior are
    stable.

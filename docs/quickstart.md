@@ -244,10 +244,35 @@ Typecheck the SDK and example:
 ```bash
 npm run sdk:check
 npm run sdk:smoke
+npm run sdk:jupiter:live
 ```
 
 The SDK returns the same `PaymentIntent` contract as the CLI JSON mode. It does
 not publish an npm package or call a hosted backend yet.
+
+Use the SDK Jupiter quote-only provider:
+
+```ts
+import { createJupiterQuoteProvider, createPaymentIntent } from "../sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    quoteProvider: createJupiterQuoteProvider(),
+  }
+);
+```
+
+This calls Jupiter for a quote estimate only. It does not sign, submit, or
+execute a swap.
+
+`sdk:jupiter:live` is skipped by default. Set `JUP_SH_LIVE_JUPITER=1` when you
+want to call Jupiter's live quote API from the example.
 
 ## 8. Run The Release Gate
 

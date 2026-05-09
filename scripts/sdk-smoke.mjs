@@ -37,6 +37,53 @@ try {
     throw new Error(`unexpected nextAction: ${intent.nextAction}`);
   }
 
+  const jupiterCheck = run("node", [
+    "--input-type=module",
+    "--eval",
+    `
+      import { createJupiterQuoteProvider, createPaymentIntent } from "${join(outDir, "sdk/index.js")}";
+
+      let capturedUrl;
+      let capturedHeaders;
+      const quoteProvider = createJupiterQuoteProvider({
+        apiKey: "test-api-key",
+        fetch: async (url, init) => {
+          capturedUrl = new URL(String(url));
+          capturedHeaders = init?.headers ?? {};
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            async json() {
+              return {
+                inAmount: "133333333",
+                outAmount: "20000000",
+                inputMint: "So11111111111111111111111111111111111111112",
+                outputMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                priceImpactPct: "0.0012"
+              };
+            }
+          };
+        }
+      });
+
+      const quoted = await createPaymentIntent(
+        { agent: "deepseek", token: "SOL", amount: 20, settle: "USDC" },
+        { quoteProvider, idFactory: () => "intent_sdk_jupiter_test" }
+      );
+
+      if (capturedUrl.searchParams.get("swapMode") !== "ExactOut") throw new Error("missing ExactOut");
+      if (capturedUrl.searchParams.get("amount") !== "20000000") throw new Error("wrong raw amount");
+      if (capturedHeaders["x-api-key"] !== "test-api-key") throw new Error("missing API key header");
+      if (quoted.quote?.source !== "jupiter_swap_exact_out") throw new Error("wrong quote source");
+      if (quoted.quote?.inputAmount !== 0.133333333) throw new Error("wrong input amount");
+      if (quoted.quote?.priceImpactBps !== 12) throw new Error("wrong price impact");
+
+      console.log("sdk jupiter smoke: ok");
+    `,
+  ]);
+  process.stdout.write(jupiterCheck);
+
   console.log("sdk smoke: ok");
 } finally {
   rmSync(outDir, { recursive: true, force: true });
