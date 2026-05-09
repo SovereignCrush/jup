@@ -79,6 +79,12 @@ List saved local intents:
 npm run cli -- intent list
 ```
 
+Export a saved intent as a Risk Review URL:
+
+```bash
+npm run cli -- intent export intent_xxx
+```
+
 Show a saved intent:
 
 ```bash
@@ -101,6 +107,7 @@ V1 includes:
 - A static product shell for the current positioning.
 - Product notes in `docs/product.md`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
+- Risk Review export design in `docs/risk-review-export-design.md`.
 - X / Twitter content notes in `docs/x-content.md`.
 
 Current demo command:
@@ -140,6 +147,8 @@ npm run cli -- policy show --json
 npm run cli -- policy init
 npm run cli -- intent list
 npm run cli -- intent list --json
+npm run cli -- intent export intent_xxx
+npm run cli -- intent export intent_xxx --payload-only
 npm run cli -- intent show intent_xxx
 npm run cli -- intent show intent_xxx --json
 ```

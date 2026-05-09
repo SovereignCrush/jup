@@ -23,6 +23,40 @@ const state = {
 
 const app = document.querySelector("#app");
 
+function parseIntentPayload() {
+  const hash = window.location.hash || "";
+  const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+  const payload = params.get("intent");
+  if (!payload) return null;
+
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    const bytes = Uint8Array.from(window.atob(padded), (char) => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    console.warn("Failed to parse jup.sh intent payload", error);
+    return null;
+  }
+}
+
+function applyIntentPayload(intent) {
+  if (!intent || !intent.intentId || !intent.settlement) return;
+
+  const quote = intent.quote || {};
+  state.invoice = {
+    ...state.invoice,
+    id: intent.intentId,
+    merchant: "Agent payment",
+    amount: Number(intent.settlement.amount) || state.invoice.amount,
+    memo: `${intent.agent || "agent"} intent`,
+    wallet: intent.recipient || state.invoice.wallet,
+  };
+  state.selectedToken = intent.payToken || quote.inputToken || state.selectedToken;
+  state.paymentState = intent.status === "rejected" ? "rejected" : "review";
+  state.intent = intent;
+}
+
 function money(value, digits = 2) {
   return Number(value).toLocaleString("en-US", {
     minimumFractionDigits: digits,
@@ -34,11 +68,41 @@ function shortAddress(value) {
   return `${value.slice(0, 6)}...${value.slice(-6)}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function getSelectedToken() {
   return TOKENS.find((token) => token.symbol === state.selectedToken) || TOKENS[1];
 }
 
 function getQuote() {
+  if (state.intent?.quote) {
+    const token =
+      TOKENS.find((item) => item.symbol === state.intent.quote.inputToken) ||
+      TOKENS.find((item) => item.symbol === state.intent.payToken) ||
+      getSelectedToken();
+    const payAmount = Number(state.intent.quote.inputAmount) || 0;
+    const decimals = token.price < 0.01 ? 0 : token.symbol === "USDC" ? 2 : 6;
+
+    return {
+      token,
+      payAmount,
+      formattedPayAmount: money(payAmount, decimals),
+      route:
+        state.intent.quote.source === "jupiter_swap_exact_out"
+          ? `${token.symbol} -> USDC via Jupiter`
+          : `${token.symbol} -> USDC route`,
+      slippage: "Policy controlled",
+      networkFee: "Estimated at authorization",
+    };
+  }
+
   const token = getSelectedToken();
   const fee = token.symbol === "USDC" ? 0 : 0.0035;
   const rawAmount = state.invoice.amount / token.price;
@@ -291,21 +355,49 @@ function renderNewPayment() {
   `;
 }
 function renderCheckout() {
+  applyIntentPayload(parseIntentPayload());
   const quote = getQuote();
   const paid = state.paymentState === "paid";
   const rejected = state.paymentState === "rejected";
   const settled = paid || rejected;
-  const status = paid ? "Approved" : rejected ? "Rejected" : "Review required";
+  const status = paid
+    ? "Approved"
+    : rejected
+      ? "Rejected"
+      : state.intent?.status === "ready_for_authorization"
+        ? "Ready for authorization"
+        : "Review required";
+  const policyResult = state.intent?.decision
+    ? state.intent.decision.replace(/_/g, " ")
+    : "Review required";
+  const riskReason =
+    state.intent?.reasons?.length > 0 ? state.intent.reasons.join("; ") : "New recipient";
+  const recipient = state.intent?.recipient || state.invoice.wallet;
+  const merchant = escapeHtml(state.invoice.merchant);
+  const memo = escapeHtml(state.invoice.memo);
+  const avatar = escapeHtml(state.invoice.merchant.slice(0, 1));
+  const reviewRows = state.intent?.policyChecks
+    ? state.intent.policyChecks
+        .map(
+          (check) => `
+            <div>
+              <span>${escapeHtml(check.name.replace(/_/g, " "))}</span>
+              <strong>${escapeHtml(check.status)}: ${escapeHtml(check.message)}</strong>
+            </div>
+          `,
+        )
+        .join("")
+    : "";
 
   return `
     <section class="pay-page">
       <div class="pay-card checkout-pay-card">
         <div class="pay-card-head">
           <div class="merchant-pill">
-            <span class="avatar">${state.invoice.merchant.slice(0, 1)}</span>
+            <span class="avatar">${avatar}</span>
             <div>
-              <strong>${state.invoice.merchant}</strong><br />
-              <small class="note">${state.invoice.memo}</small>
+              <strong>${merchant}</strong><br />
+              <small class="note">${memo}</small>
             </div>
           </div>
           <span class="status-pill ${rejected ? "rejected" : ""}">${status}</span>
@@ -331,12 +423,13 @@ function renderCheckout() {
           </div>
 
           <div class="clean-summary">
-            <div><span>Policy result</span><strong>Review required</strong></div>
+            <div><span>Policy result</span><strong>${escapeHtml(policyResult)}</strong></div>
             <div><span>You pay</span><strong>${quote.formattedPayAmount} ${quote.token.symbol}</strong></div>
             <div><span>Recipient gets</span><strong>${money(state.invoice.amount)} USDC</strong></div>
-            <div><span>Route</span><strong>${quote.route}</strong></div>
-            <div><span>Risk reason</span><strong>New recipient</strong></div>
-            <div><span>Recipient</span><strong class="mono">${shortAddress(state.invoice.wallet)}</strong></div>
+            <div><span>Route</span><strong>${escapeHtml(quote.route)}</strong></div>
+            <div><span>Risk reason</span><strong>${escapeHtml(riskReason)}</strong></div>
+            <div><span>Recipient</span><strong class="mono">${escapeHtml(shortAddress(recipient))}</strong></div>
+            ${reviewRows}
           </div>
 
           <div class="review-actions">

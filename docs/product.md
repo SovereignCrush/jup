@@ -126,6 +126,7 @@ V1 includes:
 - Quote-aware risk checks for settlement token and price impact.
 - Local policy inspection and initialization through `policy show` and `policy init`.
 - Local intent persistence under `.jup-sh/intents`.
+- Risk Review URL export for saved intents through `intent export`.
 - `intent list` and `intent show` for reading saved local intents.
 
 Current agent list shown on the homepage:

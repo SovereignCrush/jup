@@ -115,6 +115,7 @@ npm run cli -- policy init
 npm run cli -- pay --agent claude --token SOL --settle 20 USDC
 npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
 npm run cli -- intent list
+npm run cli -- intent export intent_abc123
 ```
 
 Primary command:
@@ -145,6 +146,8 @@ Show a saved intent:
 ```bash
 jup-sh intent list
 jup-sh intent list --json
+jup-sh intent export intent_abc123
+jup-sh intent export intent_abc123 --payload-only
 jup-sh intent show intent_abc123
 jup-sh intent show intent_abc123 --json
 ```
@@ -349,11 +352,22 @@ The CLI can read a saved intent:
 
 ```bash
 jup-sh intent list
+jup-sh intent export intent_abc123
 jup-sh intent show intent_abc123
 ```
 
 `--store <dir>` can override the default intent directory for tests or custom
 local workflows.
+
+`intent export` converts a saved local intent into a hosted Risk Review URL:
+
+```txt
+https://jup.sh/pay/intent_abc123#intent=<base64url-json-payload>
+```
+
+The fragment payload is a temporary MVP bridge between local CLI intents and the
+static Risk Review page. It should not contain private keys, signatures, or
+sensitive customer data.
 
 ## 8. Local Policy File
 

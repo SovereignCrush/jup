@@ -1,3 +1,4 @@
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use clap::{Parser, Subcommand};
 use jup_sh_core::{
     CreatePaymentIntentInput, Decision, IntentStatus, MockSettlementQuoter, NextAction,
@@ -94,6 +95,8 @@ struct IntentCommand {
 
 #[derive(Debug, Subcommand)]
 enum IntentSubcommand {
+    /// Export a saved intent as a Risk Review URL.
+    Export(IntentExportCommand),
     /// List locally saved payment intents.
     List(IntentListCommand),
     /// Show a locally saved payment intent.
@@ -123,6 +126,24 @@ struct IntentShowCommand {
     /// Print JSON only.
     #[arg(long)]
     json: bool,
+
+    /// Intent storage directory.
+    #[arg(long)]
+    store: Option<PathBuf>,
+}
+
+#[derive(Debug, Parser)]
+struct IntentExportCommand {
+    /// Intent ID, for example intent_abc123.
+    intent_id: String,
+
+    /// Base URL for Risk Review links.
+    #[arg(long, default_value = "https://jup.sh")]
+    review_base_url: String,
+
+    /// Print only the encoded payload.
+    #[arg(long)]
+    payload_only: bool,
 
     /// Intent storage directory.
     #[arg(long)]
@@ -235,6 +256,7 @@ fn run_pay(command: PayCommand) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_intent(command: IntentCommand) -> Result<(), Box<dyn std::error::Error>> {
     match command.command {
+        IntentSubcommand::Export(command) => run_intent_export(command),
         IntentSubcommand::List(command) => run_intent_list(command),
         IntentSubcommand::Show(command) => run_intent_show(command),
     }
@@ -259,6 +281,23 @@ fn run_intent_show(command: IntentShowCommand) -> Result<(), Box<dyn std::error:
         println!("{}", serde_json::to_string_pretty(&intent)?);
     } else {
         print_human(&intent);
+    }
+
+    Ok(())
+}
+
+fn run_intent_export(command: IntentExportCommand) -> Result<(), Box<dyn std::error::Error>> {
+    let intent = load_intent(&command.intent_id, command.store.as_ref())?;
+    let payload = URL_SAFE_NO_PAD.encode(serde_json::to_vec(&intent)?);
+
+    if command.payload_only {
+        println!("{payload}");
+    } else {
+        let base_url = command.review_base_url.trim_end_matches('/');
+        println!(
+            "{base_url}/pay/{id}#intent={payload}",
+            id = intent.intent_id
+        );
     }
 
     Ok(())

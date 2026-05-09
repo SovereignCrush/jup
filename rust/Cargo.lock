@@ -627,6 +627,7 @@ dependencies = [
 name = "jup-sh-cli"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "clap",
  "jup-sh-core",
  "reqwest",
