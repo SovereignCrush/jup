@@ -168,6 +168,12 @@ Alpha npm package dry run:
 npm run alpha:pack
 ```
 
+Release gate:
+
+```bash
+npm run release:check
+```
+
 JSON output for agents or scripts:
 
 ```bash

@@ -9,6 +9,7 @@
     "cli:alpha": "node npm/bin/jup-sh",
     "alpha:smoke": "node scripts/alpha-smoke.mjs",
     "alpha:pack": "node scripts/npm-pack-dry-run.mjs",
+    "release:check": "node scripts/release-check.mjs",
     "deploy": "rm -rf /tmp/jup-sh-pages && mkdir -p /tmp/jup-sh-pages && cp index.html app.js styles.css favicon.svg _redirects /tmp/jup-sh-pages/ && wrangler pages deploy /tmp/jup-sh-pages --project-name=jup-sh"
   },
   "devDependencies": {

@@ -56,6 +56,12 @@ It also checks that common local or secret paths are not included.
 Run:
 
 ```bash
+npm run release:check
+```
+
+This runs:
+
+```bash
 npm run check
 npm run alpha:smoke
 npm run alpha:pack
