@@ -1600,29 +1600,41 @@ body.light-route {
 }
 
 .hero-wordmark {
-  width: min(720px, 86vw);
+  width: min(360px, 72vw);
   margin: 18px auto 0;
   position: relative;
-  color: #b8b8b8;
-  background: none;
-  -webkit-text-fill-color: #b8b8b8;
-  font-size: clamp(86px, 13.8vw, 168px);
-  line-height: 0.72;
-  font-family: "Arial Black", Impact, system-ui, sans-serif;
+  color: transparent;
+  background: linear-gradient(
+    115deg,
+    #fb7185 0%,
+    #ffd166 19%,
+    #22e29b 39%,
+    #28d7ff 58%,
+    #6a8cff 76%,
+    #a78bfa 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: clamp(76px, 12vw, 126px);
+  line-height: 0.78;
+  font-family: Impact, "Arial Black", system-ui, sans-serif;
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
-  -webkit-text-stroke: 0;
+  -webkit-text-stroke: 1px rgba(244, 244, 245, 0.55);
   text-shadow:
-    2px 0 0 #070708,
-    0 2px 0 #070708,
-    2px 2px 0 #070708,
-    4px 4px 0 #f5f5f5,
-    6px 6px 0 #08080a,
-    8px 8px 0 #c8c8c8,
-    10px 10px 0 #08080a,
-    13px 13px 0 #777777,
-    16px 16px 0 #08080a;
+    1px 1px 0 rgba(255, 255, 255, 0.82),
+    3px 3px 0 rgba(40, 215, 255, 0.82),
+    5px 5px 0 rgba(34, 226, 155, 0.78),
+    7px 7px 0 rgba(255, 209, 102, 0.58),
+    9px 9px 0 rgba(251, 113, 133, 0.68),
+    12px 12px 0 rgba(39, 39, 42, 0.85);
+}
+
+.hero-wordmark span {
+  display: inline-block;
+  transform: translateY(0);
 }
 
 .hero-wordmark::before,
@@ -1635,28 +1647,20 @@ body.light-route {
 }
 
 .hero-wordmark::before {
-  z-index: 1;
-  color: #ffffff;
-  -webkit-text-fill-color: #ffffff;
-  clip-path: inset(0 0 61% 0);
-  transform: translate(0, 0);
+  color: rgba(103, 232, 249, 0.48);
+  transform: translate(4px, 7px);
   text-shadow:
-    2px 0 0 #070708,
-    0 2px 0 #070708,
-    4px 4px 0 #e7e7e7,
-    6px 6px 0 #08080a;
+    3px 3px 0 rgba(34, 226, 155, 0.42),
+    7px 7px 0 rgba(167, 139, 250, 0.4),
+    11px 11px 0 rgba(24, 24, 27, 0.86);
 }
 
 .hero-wordmark::after {
-  color: rgba(230, 230, 230, 0.68);
-  -webkit-text-fill-color: rgba(230, 230, 230, 0.68);
-  transform: translate(12px, 12px);
+  color: rgba(251, 113, 133, 0.3);
+  transform: translate(13px, 15px);
   text-shadow:
-    2px 0 0 #050507,
-    0 2px 0 #050507,
-    4px 4px 0 rgba(245, 245, 245, 0.66),
-    6px 6px 0 #050507,
-    9px 9px 0 rgba(128, 128, 128, 0.62);
+    -3px -2px 0 rgba(167, 139, 250, 0.28),
+    2px 2px 0 rgba(39, 39, 42, 0.82);
 }
 
 .pay-home-grid {
@@ -2597,36 +2601,10 @@ body.light-route {
   }
 
   .hero-wordmark {
-    width: min(100%, 330px);
+    width: 100%;
     transform: none;
-    font-size: clamp(46px, 14.5vw, 56px);
+    font-size: clamp(58px, 18vw, 70px);
     text-align: center;
-    text-shadow:
-      1px 0 0 #070708,
-      0 1px 0 #070708,
-      2px 2px 0 #f5f5f5,
-      4px 4px 0 #08080a,
-      6px 6px 0 #c8c8c8,
-      8px 8px 0 #08080a,
-      10px 10px 0 #777777,
-      12px 12px 0 #08080a;
-  }
-
-  .hero-wordmark::before {
-    text-shadow:
-      1px 0 0 #070708,
-      0 1px 0 #070708,
-      3px 3px 0 #e7e7e7,
-      5px 5px 0 #08080a;
-  }
-
-  .hero-wordmark::after {
-    transform: translate(9px, 9px);
-    text-shadow:
-      1px 0 0 #050507,
-      0 1px 0 #050507,
-      3px 3px 0 rgba(245, 245, 245, 0.58),
-      5px 5px 0 #050507;
   }
 
   .pay-home-copy h1 {
