@@ -1,0 +1,137 @@
+# CLI Release Plan
+
+This document describes how the current local Rust CLI should become a public
+developer tool.
+
+## Current State
+
+Today the CLI runs from source:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+```
+
+The actual binary name is already:
+
+```bash
+jup-sh
+```
+
+The repository is not published as an npm package yet. The root `package.json`
+is intentionally private while the CLI is still changing quickly.
+
+## Target Developer Experience
+
+Primary target:
+
+```bash
+npx jup-sh pay --agent claude --token SOL --settle 20 USDC
+```
+
+Installed target:
+
+```bash
+npm install -g jup-sh
+jup-sh pay --agent claude --token SOL --settle 20 USDC
+```
+
+The command should stay aligned with the website:
+
+```txt
+pay --agent claude --token SOL --settle 20 USDC
+```
+
+## Why npm / npx First
+
+npm is the right first distribution channel because:
+
+- the target users are agent, app, and API developers
+- `npx` works well for trying a CLI without installation
+- the website already presents the tool as a command-first developer product
+- it can later wrap the Rust binary without changing the user-facing command
+
+Cargo install and Homebrew can come later.
+
+## Packaging Approach
+
+Keep the payment logic in Rust:
+
+```txt
+rust/crates/core
+rust/crates/cli
+```
+
+Publish an npm wrapper package named `jup-sh` that exposes the `jup-sh` binary.
+
+Possible release structure:
+
+```txt
+npm/
+  package.json
+  bin/
+    jup-sh
+```
+
+The wrapper can either:
+
+1. download a prebuilt Rust binary for the user's platform, or
+2. package prebuilt binaries inside npm releases, or
+3. temporarily run the Rust binary from source for early alpha users.
+
+Option 1 is the cleanest long-term route. Option 3 is acceptable only for a
+private alpha.
+
+## Release Criteria
+
+Before publishing to npm, the CLI should have:
+
+- stable command names for `pay`, `policy`, and `intent`
+- clear JSON output for agents
+- no private keys, signatures, or transactions in exported review payloads
+- `README.md` Quickstart that matches the published install path
+- GitHub release notes
+- basic smoke tests for:
+  - `jup-sh policy show`
+  - `jup-sh pay ...`
+  - `jup-sh intent list`
+  - `jup-sh intent export ...`
+
+## Current Non-Goals
+
+The first npm release should not include:
+
+- wallet signing
+- swap execution
+- Solana Pay transaction requests
+- remote backend persistence
+- authentication
+
+## Proposed Milestones
+
+### Alpha 0
+
+Source-only:
+
+```bash
+npm run cli -- ...
+```
+
+This is the current state.
+
+### Alpha 1
+
+Npm package with command:
+
+```bash
+npx jup-sh ...
+```
+
+Still quote-only and local-intent-only.
+
+### Alpha 2
+
+Add a small SDK or MCP surface after the CLI command shape stabilizes.
+
+### Beta
+
+Add backend intent storage or Solana Pay transaction request generation.

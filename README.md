@@ -26,6 +26,23 @@ Live site:
 https://www.jup.sh
 ```
 
+## Current MVP
+
+The current MVP is a source-run CLI plus static Risk Review prototype:
+
+```txt
+policy init/show
+-> payment intent
+-> mock or Jupiter quote
+-> quote-aware policy checks
+-> local intent store
+-> Risk Review URL export
+-> hosted Risk Review page
+```
+
+It is intentionally quote-only and review-only. It does not sign transactions,
+execute swaps, custody funds, or move tokens.
+
 ## Product Direction
 
 `jup.sh` is designed as a Jupiter-powered risk and settlement layer for Solana
@@ -106,6 +123,7 @@ V1 includes:
 - A Risk Review prototype.
 - A static product shell for the current positioning.
 - Product notes in `docs/product.md`.
+- CLI release plan in `docs/cli-release-plan.md`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
 - Risk Review export design in `docs/risk-review-export-design.md`.
 - X / Twitter content notes in `docs/x-content.md`.
@@ -114,6 +132,18 @@ Current demo command:
 
 ```bash
 jup-sh pay --agent claude --token SOL --settle 20 USDC
+```
+
+Current source command:
+
+```bash
+npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+```
+
+Target published command:
+
+```bash
+npx jup-sh pay --agent claude --token SOL --settle 20 USDC
 ```
 
 JSON output for agents or scripts:
