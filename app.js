@@ -186,10 +186,60 @@ function fakeQR(seed) {
   return `<div class="qr" aria-label="Payment QR preview">${html}</div>`;
 }
 
+function renderEcosystemWall() {
+  const items = [
+    { label: "x402", logo: "/assets/logos/x402.png", mark: "402", tone: "x402" },
+    { label: "Privy", logo: "/assets/logos/privy.png", mark: "P", tone: "privy" },
+    { label: "Qwen", logo: "/assets/logos/qwen.png", mark: "Q", tone: "qwen" },
+    { label: "Claude", logo: "/assets/logos/claude.svg", mark: "C", tone: "claude" },
+    { label: "Codex", logo: "/assets/logos/openai.svg", mark: "AI", tone: "codex" },
+    { label: "Jupiter", logo: "/assets/logos/jupiter.png", mark: "JUP", tone: "jupiter" },
+    { label: "Solana", logo: "/assets/logos/solana.svg", mark: "SOL", tone: "solana" },
+    { label: "DeepSeek", logo: "/assets/logos/deepseek.svg", mark: "D", tone: "deepseek" },
+    { label: "Kimi", mark: "K", tone: "kimi" },
+    { label: "MiniMax", mark: "M", tone: "minimax" },
+    { label: "AWS", logo: "/assets/logos/aws.svg", mark: "aws", tone: "aws" },
+    { label: "Google Cloud", logo: "/assets/logos/googlecloud.svg", mark: "G", tone: "google" },
+    { label: "Cloudflare", logo: "/assets/logos/cloudflare.svg", mark: "CF", tone: "cloudflare" },
+    { label: "GitHub", logo: "/assets/logos/github.svg", mark: "GH", tone: "github" },
+    { label: "Risk Policy", mark: "RP", tone: "risk" },
+  ];
+  const row = items
+    .map(
+      ({ label, logo, mark, tone }) => `
+        <span class="ecosystem-chip ecosystem-${tone}">
+          <i>
+            ${
+              logo
+                ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />`
+                : ""
+            }
+            <span>${mark}</span>
+          </i>
+          <b>${label}</b>
+        </span>
+      `
+    )
+    .join("");
+
+  return `
+    <div class="ecosystem-wall" aria-label="Ecosystem signals">
+      <div class="ecosystem-label">Ecosystem signals</div>
+      <div class="ecosystem-marquee">
+        <div class="ecosystem-track">${row}${row}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderHome() {
   return `
     <section class="pay-sh-hero">
-      <div class="hero-wordmark" data-word="JUP.SH">JUP.SH</div>
+      <div class="hero-wordmark" data-word="JUP.SH" aria-label="JUP.SH">
+        ${["J", "U", "P", ".", "S", "H"]
+          .map((letter, index) => `<span style="--i: ${index}">${letter}</span>`)
+          .join("")}
+      </div>
       <div class="pay-home-grid hero-single">
         <div class="pay-home-copy">
           <h1>
@@ -209,7 +259,7 @@ function renderHome() {
                 <code>--token SOL</code>
                 <code>--settle 20 USDC</code>
               </span>
-              <small>Copy</small>
+              <small>Copy CLI</small>
             </button>
           </div>
           <div class="agent-row">
@@ -228,6 +278,7 @@ function renderHome() {
               <strong>Solana</strong>
             </div>
           </div>
+          ${renderEcosystemWall()}
         </div>
       </div>
     </section>

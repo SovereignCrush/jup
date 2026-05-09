@@ -10,7 +10,7 @@
     "alpha:smoke": "node scripts/alpha-smoke.mjs",
     "alpha:pack": "node scripts/npm-pack-dry-run.mjs",
     "release:check": "node scripts/release-check.mjs",
-    "deploy": "rm -rf /tmp/jup-sh-pages && mkdir -p /tmp/jup-sh-pages && cp index.html app.js styles.css favicon.svg _redirects /tmp/jup-sh-pages/ && wrangler pages deploy /tmp/jup-sh-pages --project-name=jup-sh"
+    "deploy": "rm -rf /tmp/jup-sh-pages && mkdir -p /tmp/jup-sh-pages && cp index.html app.js styles.css favicon.svg _redirects /tmp/jup-sh-pages/ && cp -R assets /tmp/jup-sh-pages/ && wrangler pages deploy /tmp/jup-sh-pages --project-name=jup-sh"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

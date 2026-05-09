@@ -1602,7 +1602,6 @@ body.light-route {
 .hero-wordmark {
   width: min(360px, 72vw);
   margin: 18px auto 0;
-  transform: none;
   position: relative;
   color: transparent;
   background: linear-gradient(180deg, #b8b8b8 0%, #b8b8b8 100%);
@@ -1625,6 +1624,14 @@ body.light-route {
     10px 10px 0 #6f7f84,
     12px 12px 0 #4c5b5f,
     13px 13px 0 rgba(237, 137, 91, 0.68);
+  animation: wordmark-wave 5.4s ease-in-out infinite;
+}
+
+.hero-wordmark span {
+  display: inline-block;
+  transform: translateY(0);
+  animation: wordmark-letter-wave 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.08s);
 }
 
 .hero-wordmark::before,
@@ -1639,6 +1646,7 @@ body.light-route {
 .hero-wordmark::before {
   color: #dfe7e9;
   transform: translate(3px, 6px);
+  animation: wordmark-wave-shadow 5.4s ease-in-out infinite;
   text-shadow:
     2px 2px 0 rgba(255, 255, 255, 0.86),
     4px 4px 0 #aeb7ba,
@@ -1649,6 +1657,7 @@ body.light-route {
 .hero-wordmark::after {
   color: rgba(255, 177, 97, 0.54);
   transform: translate(12px, 15px);
+  animation: wordmark-wave-deep 5.4s ease-in-out infinite;
   text-shadow:
     -2px -1px 0 rgba(167, 139, 250, 0.44),
     2px 2px 0 rgba(88, 111, 116, 0.9);
@@ -1711,6 +1720,7 @@ body.light-route {
 .try-block {
   width: 100%;
   max-width: 720px;
+  min-width: 0;
   margin: 32px auto 0;
   border: 0;
   border-radius: 0;
@@ -1726,13 +1736,14 @@ body.light-route {
   border: 0;
   color: #a1a1aa;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .terminal-line {
   width: 100%;
+  min-width: 0;
   min-height: 58px;
   border: 0;
   border-radius: 4px;
@@ -1788,8 +1799,18 @@ body.light-route {
 
 .terminal-line small {
   flex: 0 0 auto;
-  color: #a1a1aa;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #03100b;
+  background: #22e29b;
+  box-shadow: 0 0 20px rgba(34, 226, 155, 0.16);
   font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .agent-row {
@@ -1812,7 +1833,8 @@ body.light-route {
   margin-bottom: 12px;
   color: #a1a1aa;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -1828,6 +1850,276 @@ body.light-route {
   display: inline-block;
   font-size: 16px;
   font-weight: 600;
+}
+
+.ecosystem-wall {
+  width: 100vw;
+  margin: 34px calc(50% - 50vw) 0;
+  display: grid;
+  gap: 12px;
+}
+
+.ecosystem-label {
+  color: #71717a;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ecosystem-marquee {
+  position: relative;
+  overflow: hidden;
+  border-block: 1px solid #242428;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    rgba(13, 13, 15, 0.9);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.ecosystem-track {
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  animation: ecosystem-scroll 42s linear infinite;
+}
+
+.ecosystem-marquee:hover .ecosystem-track {
+  animation-play-state: paused;
+}
+
+.ecosystem-chip {
+  flex: 0 0 auto;
+  min-width: 156px;
+  min-height: 54px;
+  border: 1px solid #2b2b31;
+  border-radius: 10px;
+  padding: 8px 16px 8px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f4f4f5;
+  background: rgba(17, 17, 20, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ecosystem-chip i {
+  width: 42px;
+  height: 38px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #09090b;
+  background: #fafafa;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+  overflow: hidden;
+  position: relative;
+}
+
+.ecosystem-chip i img {
+  width: 28px;
+  max-width: 34px;
+  height: 28px;
+  display: block;
+  object-fit: contain;
+}
+
+.ecosystem-x402 i,
+.ecosystem-privy i,
+.ecosystem-qwen i,
+.ecosystem-cloudflare i {
+  width: 72px;
+  background: #fafafa;
+}
+
+.ecosystem-x402 i img,
+.ecosystem-privy i img,
+.ecosystem-qwen i img,
+.ecosystem-cloudflare i img {
+  width: 58px;
+  max-width: 58px;
+  height: 26px;
+}
+
+.ecosystem-chip i img + span {
+  display: none;
+}
+
+.ecosystem-chip i span {
+  display: block;
+}
+
+.ecosystem-chip b {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ecosystem-x402 i {
+  background: #f8fafc;
+}
+
+.ecosystem-privy i {
+  background: #c4b5fd;
+}
+
+.ecosystem-qwen i,
+.ecosystem-codex i {
+  background: #93c5fd;
+}
+
+.ecosystem-claude i {
+  background: #f0abfc;
+}
+
+.ecosystem-jupiter i {
+  background: #111114;
+}
+
+.ecosystem-jupiter i img {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+}
+
+.ecosystem-solana i {
+  background: linear-gradient(135deg, #9945ff, #14f195);
+}
+
+.ecosystem-risk i {
+  background: #a7f3d0;
+}
+
+.ecosystem-deepseek i,
+.ecosystem-kimi i,
+.ecosystem-minimax i {
+  background: #fef3c7;
+}
+
+.ecosystem-aws i {
+  background: #ffb84d;
+}
+
+.ecosystem-google i {
+  background: conic-gradient(from 45deg, #4285f4, #34a853, #fbbc05, #ea4335, #4285f4);
+}
+
+.ecosystem-cloudflare i {
+  background: #f97316;
+}
+
+.ecosystem-github i {
+  color: #f4f4f5;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+}
+
+.ecosystem-claude i,
+.ecosystem-codex i,
+.ecosystem-solana i,
+.ecosystem-deepseek i,
+.ecosystem-aws i,
+.ecosystem-google i,
+.ecosystem-cloudflare i,
+.ecosystem-github i {
+  color: #f4f4f5;
+}
+
+.ecosystem-claude i img,
+.ecosystem-codex i img,
+.ecosystem-solana i img,
+.ecosystem-deepseek i img,
+.ecosystem-aws i img,
+.ecosystem-google i img,
+.ecosystem-github i img {
+  filter: invert(1);
+}
+
+@keyframes ecosystem-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes wordmark-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  42% {
+    transform: translateY(-4px);
+  }
+
+  72% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes wordmark-wave-shadow {
+  0%,
+  100% {
+    transform: translate(3px, 6px);
+  }
+
+  42% {
+    transform: translate(3px, 10px);
+  }
+
+  72% {
+    transform: translate(3px, 4px);
+  }
+}
+
+@keyframes wordmark-wave-deep {
+  0%,
+  100% {
+    transform: translate(12px, 15px);
+  }
+
+  42% {
+    transform: translate(12px, 19px);
+  }
+
+  72% {
+    transform: translate(12px, 12px);
+  }
+}
+
+@keyframes wordmark-letter-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  45% {
+    transform: translateY(-7px);
+  }
+
+  70% {
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecosystem-track,
+  .hero-wordmark,
+  .hero-wordmark span,
+  .hero-wordmark::before,
+  .hero-wordmark::after {
+    animation: none;
+  }
 }
 
 .terminal-card {
@@ -2464,7 +2756,7 @@ body.light-route {
   }
 
   .terminal-line small {
-    align-self: flex-end;
+    align-self: flex-start;
   }
 
   .agent-row {
