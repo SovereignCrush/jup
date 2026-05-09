@@ -24,7 +24,7 @@ cargo run --quiet --
 Target command shape:
 
 ```bash
-jup-sh pay --agent claude --token SOL --settle 20 USDC --json
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
 The CLI JSON contract is documented in:

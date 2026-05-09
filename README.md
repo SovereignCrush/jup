@@ -86,14 +86,14 @@ npm run cli -- policy init
 Create a payment intent with the default mock quote provider:
 
 ```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Create a payment intent with a real Jupiter quote, without signing or executing
 a payment:
 
 ```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC --quote-provider jupiter
 ```
 
 List saved local intents:
@@ -142,25 +142,25 @@ V1 includes:
 Current demo command:
 
 ```bash
-jup-sh pay --agent claude --token SOL --settle 20 USDC
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Current source command:
 
 ```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Target published command:
 
 ```bash
-npx jup-sh pay --agent claude --token SOL --settle 20 USDC
+npx jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Local npm wrapper prototype:
 
 ```bash
-npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Alpha wrapper smoke test:
@@ -184,7 +184,7 @@ npm run release:check
 JSON output for agents or scripts:
 
 ```bash
-npm run --silent cli:alpha -- pay --agent claude --token SOL --settle 20 USDC --json
+npm run --silent cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
 The CLI returns a structured local payment intent with:
@@ -206,7 +206,7 @@ For `pay`, exit codes are part of the agent contract:
 The default quote provider is `mock`. Use `jupiter` for quote-only real routing:
 
 ```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC --quote-provider jupiter
 ```
 
 Set `JUPITER_API_KEY` or pass `--jupiter-api-key` if the Jupiter endpoint
@@ -243,7 +243,7 @@ Example policy override:
 Save it as `jup.policy.json`, then run:
 
 ```bash
-npm run cli -- pay --agent claude --token SOL --settle 2 USDC --recipient jup-sh-demo
+npm run cli -- pay --agent deepseek --token SOL --amount 2 --settle USDC --recipient jup-sh-demo
 ```
 
 ## Local Development

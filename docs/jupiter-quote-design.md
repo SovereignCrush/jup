@@ -13,16 +13,17 @@ quotes without signing or executing payments.
 The product command stays settlement-first:
 
 ```bash
-jup-sh pay --agent claude --token SOL --settle 20 USDC
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 With Jupiter enabled:
 
 ```bash
 jup-sh pay \
-  --agent claude \
+  --agent deepseek \
   --token SOL \
-  --settle 20 USDC \
+  --amount 20 \
+  --settle USDC \
   --quote-provider jupiter
 ```
 

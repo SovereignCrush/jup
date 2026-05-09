@@ -36,8 +36,12 @@ struct PayCommand {
     #[arg(long)]
     token: String,
 
-    /// Settlement amount and token, for example: --settle 20 USDC.
-    #[arg(long, num_args = 2, value_names = ["AMOUNT", "TOKEN"])]
+    /// Settlement amount, for example: --amount 20.
+    #[arg(long)]
+    amount: Option<f64>,
+
+    /// Settlement token. Prefer --amount 20 --settle USDC. The legacy form --settle 20 USDC is still accepted.
+    #[arg(long, num_args = 1..=2, value_names = ["TOKEN"])]
     settle: Vec<String>,
 
     /// Recipient address or local label.
@@ -208,16 +212,7 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
 
 fn run_pay(command: PayCommand) -> Result<ExitCode, Box<dyn std::error::Error>> {
     let policy = load_policy(command.policy.as_ref())?;
-    let settle_amount = command
-        .settle
-        .first()
-        .ok_or("--settle requires amount and token")?
-        .parse::<f64>()?;
-    let settle_token = command
-        .settle
-        .get(1)
-        .ok_or("--settle requires amount and token")?
-        .clone();
+    let (settle_amount, settle_token) = parse_settlement_args(command.amount, &command.settle)?;
 
     let input = CreatePaymentIntentInput {
         agent: command.agent,
@@ -253,6 +248,25 @@ fn run_pay(command: PayCommand) -> Result<ExitCode, Box<dyn std::error::Error>> 
     }
 
     Ok(exit_code_for_decision(&intent.decision))
+}
+
+fn parse_settlement_args(
+    amount: Option<f64>,
+    settle: &[String],
+) -> Result<(f64, String), Box<dyn std::error::Error>> {
+    match (amount, settle) {
+        (Some(settle_amount), [settle_token]) => Ok((settle_amount, settle_token.clone())),
+        (None, [settle_amount, settle_token]) => {
+            Ok((settle_amount.parse::<f64>()?, settle_token.clone()))
+        }
+        (Some(_), []) => Err("--settle requires token when --amount is provided".into()),
+        (Some(_), [_, _, ..]) => Err(
+            "use --amount 20 --settle USDC, not --amount with legacy --settle amount token".into(),
+        ),
+        (None, []) | (None, [_]) | (None, [_, _, _, ..]) => {
+            Err("use --amount 20 --settle USDC".into())
+        }
+    }
 }
 
 fn run_intent(command: IntentCommand) -> Result<ExitCode, Box<dyn std::error::Error>> {

@@ -22,7 +22,7 @@ payments.
 The CLI should make this command real:
 
 ```bash
-jup-sh pay --agent claude --token SOL --settle 20 USDC
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Expected result:
@@ -117,8 +117,8 @@ Quickstart from source:
 npm install
 npm run cli -- policy show
 npm run cli -- policy init
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC --quote-provider jupiter
 npm run cli -- intent list
 npm run cli -- intent export intent_abc123
 ```
@@ -126,7 +126,7 @@ npm run cli -- intent export intent_abc123
 Primary command:
 
 ```bash
-jup-sh pay --agent claude --token SOL --settle 20 USDC
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Options:

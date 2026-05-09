@@ -32,7 +32,7 @@ decides when human review is required.
 Primary command shown on the site:
 
 ```txt
-pay --agent claude --token SOL --settle 20 USDC
+pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 ## 2. Product Thesis
@@ -225,7 +225,7 @@ settlement.
 
 Phase 2 should focus on one credible end-to-end path:
 
-1. `pay --agent claude --token SOL --settle 20 USDC`
+1. `pay --agent deepseek --token SOL --amount 20 --settle USDC`
 2. CLI creates a payment intent.
 3. Local policy evaluates amount, token, recipient, and configured limits.
 4. CLI saves the intent locally.

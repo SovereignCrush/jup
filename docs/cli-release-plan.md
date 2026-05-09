@@ -13,7 +13,7 @@ developer tool.
 Today the CLI runs from source:
 
 ```bash
-npm run cli -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 The actual binary name is already:
@@ -28,7 +28,7 @@ is intentionally private while the CLI is still changing quickly.
 There is now a local npm wrapper prototype:
 
 ```bash
-npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 It calls the Rust CLI from the current repository. It is a development bridge,
@@ -75,20 +75,20 @@ docs/releases/0.1.0-alpha.0.md
 Primary target:
 
 ```bash
-npx jup-sh pay --agent claude --token SOL --settle 20 USDC
+npx jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Installed target:
 
 ```bash
 npm install -g jup-sh
-jup-sh pay --agent claude --token SOL --settle 20 USDC
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 The command should stay aligned with the website:
 
 ```txt
-pay --agent claude --token SOL --settle 20 USDC
+pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 ## Why npm / npx First

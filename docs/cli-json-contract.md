@@ -8,7 +8,7 @@ description: Agent-facing JSON output and exit code contract for jup-sh pay.
 This document defines the current agent-facing JSON contract for:
 
 ```bash
-jup-sh pay --agent claude --token SOL --settle 20 USDC --json
+jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
 The contract is intentionally small. It describes a local payment intent and

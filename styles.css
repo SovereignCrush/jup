@@ -77,25 +77,25 @@ button {
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   position: relative;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   background: transparent;
-  color: var(--green);
   box-shadow: none;
   overflow: visible;
 }
 
-.brand-symbol {
+.brand-mark img {
+  width: 30px;
+  height: 30px;
   display: block;
-  font-size: 28px;
-  line-height: 1;
-  transform: translateY(1px);
-  text-shadow: 0 0 18px rgba(167, 139, 250, 0.32);
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
 }
 
 .brand small {
@@ -141,15 +141,41 @@ button {
   min-height: auto;
   padding: 0;
   border: 0;
-  color: var(--muted);
-  font-size: 18px;
-  font-weight: 700;
+  color: rgba(250, 250, 250, 0.78);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0;
 }
 
 .nav a:hover {
   background: transparent;
   border: 0;
-  color: var(--text);
+  color: #ffffff;
+}
+
+.nav-docs {
+  line-height: 1;
+}
+
+.nav-github {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.nav-github img {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: brightness(0) invert(1);
+  opacity: 0.78;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.nav-github:hover img {
+  opacity: 1;
+  transform: translateY(-1px);
 }
 
 .nav span {
@@ -379,25 +405,15 @@ button {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #020906;
-  font-size: 12px;
-  font-weight: 850;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.token-icon.sol {
-  background: linear-gradient(135deg, #8b5cf6, #22e29b);
-}
-
-.token-icon.usdc {
-  background: #5ea4ff;
-}
-
-.token-icon.jup {
-  background: linear-gradient(135deg, #ffcc66, #28d7ff);
-}
-
-.token-icon.bonk {
-  background: #ff7a59;
+.token-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .token-meta small,
@@ -702,9 +718,9 @@ button {
 }
 
 .light-route .brand-mark {
-  color: #0c8f64;
-  background: #effbf5;
-  border-color: rgba(12, 143, 100, 0.3);
+  color: #f4f4f5;
+  background: transparent;
+  border-color: transparent;
   box-shadow: none;
 }
 
@@ -1189,7 +1205,17 @@ button {
 .compact-token .token-icon {
   width: 24px;
   height: 24px;
-  font-size: 10px;
+  flex: 0 0 24px;
+}
+
+.compact-token .token-icon.sol {
+  background: linear-gradient(135deg, #9945ff, #14f195);
+}
+
+.compact-token .token-icon.sol img {
+  width: 17px;
+  height: 17px;
+  filter: brightness(0) invert(1);
 }
 
 .clean-summary {
@@ -1545,16 +1571,16 @@ body.light-route {
 }
 
 .light-route .brand-mark {
-  color: #09090b;
-  background: conic-gradient(from 220deg, #22e29b, #28d7ff, #a78bfa, #ffd166, #22e29b);
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 0 34px rgba(34, 226, 155, 0.18);
+  color: #f4f4f5;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .light-route .nav a,
 .light-route .nav span {
-  color: #a1a1aa;
-  font-size: 18px;
+  color: rgba(250, 250, 250, 0.78);
+  font-size: 15px;
 }
 
 .light-route .nav a:hover {
@@ -1600,67 +1626,78 @@ body.light-route {
 }
 
 .hero-wordmark {
-  width: min(360px, 72vw);
-  margin: 18px auto 0;
+  width: min(560px, 82vw);
+  aspect-ratio: 760 / 220;
+  margin: 4px auto 0;
   position: relative;
-  color: transparent;
-  background: linear-gradient(
-    115deg,
-    #fb7185 0%,
-    #ffd166 19%,
-    #22e29b 39%,
-    #28d7ff 58%,
-    #6a8cff 76%,
-    #a78bfa 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: clamp(76px, 12vw, 126px);
-  line-height: 0.78;
-  font-family: Impact, "Arial Black", system-ui, sans-serif;
-  font-weight: 900;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  -webkit-text-stroke: 1px rgba(244, 244, 245, 0.55);
-  text-shadow:
-    1px 1px 0 rgba(255, 255, 255, 0.82),
-    3px 3px 0 rgba(40, 215, 255, 0.82),
-    5px 5px 0 rgba(34, 226, 155, 0.78),
-    7px 7px 0 rgba(255, 209, 102, 0.58),
-    9px 9px 0 rgba(251, 113, 133, 0.68),
-    12px 12px 0 rgba(39, 39, 42, 0.85);
-}
-
-.hero-wordmark span {
-  display: inline-block;
-  transform: translateY(0);
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 18px 38px rgba(0, 0, 0, 0.48));
 }
 
 .hero-wordmark::before,
 .hero-wordmark::after {
-  content: attr(data-word);
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
+  content: none;
 }
 
-.hero-wordmark::before {
-  color: rgba(103, 232, 249, 0.48);
-  transform: translate(4px, 7px);
-  text-shadow:
-    3px 3px 0 rgba(34, 226, 155, 0.42),
-    7px 7px 0 rgba(167, 139, 250, 0.4),
-    11px 11px 0 rgba(24, 24, 27, 0.86);
+.hero-wordmark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 
-.hero-wordmark::after {
-  color: rgba(251, 113, 133, 0.3);
-  transform: translate(13px, 15px);
-  text-shadow:
-    -3px -2px 0 rgba(167, 139, 250, 0.28),
-    2px 2px 0 rgba(39, 39, 42, 0.82);
+.hero-wordmark text {
+  dominant-baseline: alphabetic;
+  font-family: "Avenir Next", "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-size: 150px;
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -2px;
+}
+
+.wordmark-shadow {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.82);
+  stroke-width: 13px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translate(8px, 10px);
+  opacity: 0.78;
+}
+
+.wordmark-draw {
+  fill: none;
+  stroke: url("#wordmarkGradient");
+  stroke-width: 4.4px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 980;
+  stroke-dashoffset: 980;
+  filter: url("#wordmarkGlow");
+  animation: writeWordmark 1.65s cubic-bezier(0.72, 0, 0.2, 1) 0.18s forwards;
+}
+
+.wordmark-fill {
+  fill: url("#wordmarkGradient");
+  stroke: url("#wordmarkGradient");
+  stroke-width: 1.4px;
+  paint-order: stroke fill;
+  opacity: 0.18;
+  filter: url("#wordmarkGlow");
+  animation: fillWordmark 0.62s ease 1.36s forwards;
+}
+
+@keyframes writeWordmark {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fillWordmark {
+  to {
+    opacity: 1;
+  }
 }
 
 .pay-home-grid {
@@ -1799,8 +1836,32 @@ body.light-route {
 
 .terminal-line small {
   flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  position: relative;
   color: #a1a1aa;
-  font-size: 12px;
+  font-size: 0;
+}
+
+.terminal-line small::before,
+.terminal-line small::after {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+}
+
+.terminal-line small::before {
+  left: 4px;
+  top: 3px;
+}
+
+.terminal-line small::after {
+  left: 8px;
+  top: 7px;
+  background: #0e0e10;
 }
 
 .agent-row {
@@ -1883,29 +1944,53 @@ body.light-route {
 
 .ecosystem-chip {
   flex: 0 0 auto;
-  min-width: 168px;
-  min-height: 54px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 18px;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  border-radius: 0;
+  padding: 4px 12px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #f4f4f5;
-  background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  justify-content: flex-start;
+  gap: 10px;
+  color: #d4d4d8;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ecosystem-qwen {
+  width: 132px;
+}
+
+.ecosystem-claude,
+.ecosystem-codex,
+.ecosystem-github {
+  width: 146px;
+}
+
+.ecosystem-jupiter,
+.ecosystem-solana,
+.ecosystem-deepseek {
+  width: 154px;
+}
+
+.ecosystem-aws {
+  width: 124px;
+}
+
+.ecosystem-google {
+  width: 184px;
 }
 
 .ecosystem-chip i {
-  width: auto;
-  min-width: 28px;
-  height: 30px;
-  border-radius: 0;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  color: #f4f4f5;
-  background: transparent;
+  color: #d4d4d8;
+  background: rgba(255, 255, 255, 0.045);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 10px;
   font-style: normal;
@@ -1917,19 +2002,26 @@ body.light-route {
 
 .ecosystem-chip i img {
   width: auto;
-  max-width: 102px;
+  max-width: 22px;
   height: 24px;
   display: block;
   object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
 }
 
-.ecosystem-qwen i,
-.ecosystem-cloudflare i {
-  min-width: 74px;
+.ecosystem-wordmark {
+  padding: 8px 16px;
+  justify-content: center;
 }
 
-.ecosystem-qwen i img,
-.ecosystem-cloudflare i img {
+.ecosystem-wordmark i {
+  width: 92px;
+  min-width: 92px;
+  background: transparent;
+}
+
+.ecosystem-wordmark i img {
   max-width: 88px;
   height: 24px;
 }
@@ -1940,81 +2032,81 @@ body.light-route {
 
 .ecosystem-chip i span {
   display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
 }
 
 .ecosystem-chip b {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
-}
-
-.ecosystem-x402 i {
-}
-
-.ecosystem-privy i {
-}
-
-.ecosystem-qwen i,
-.ecosystem-codex i {
-}
-
-.ecosystem-claude i {
+  text-align: left;
 }
 
 .ecosystem-jupiter i {
+  background: transparent;
 }
 
 .ecosystem-jupiter i img {
   width: 26px;
   height: 26px;
   border-radius: 999px;
+  filter: none;
+  opacity: 1;
 }
 
-.ecosystem-solana i {
+.ecosystem-qwen i img {
+  filter: none;
+  opacity: 0.96;
 }
 
-.ecosystem-risk i {
+.ecosystem-claude i {
+  background: #d97757;
 }
 
-.ecosystem-deepseek i,
-.ecosystem-kimi i,
-.ecosystem-minimax i {
+.ecosystem-deepseek i {
+  background: #2563eb;
 }
 
 .ecosystem-aws i {
+  background: #ff9900;
+}
+
+.ecosystem-codex i,
+.ecosystem-github i {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.ecosystem-codex i img,
+.ecosystem-github i img {
+  filter: brightness(0) invert(1);
+  opacity: 0.82;
+}
+
+.ecosystem-solana i {
+  background: linear-gradient(135deg, #9945ff, #14f195);
+}
+
+.ecosystem-solana i img {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
 }
 
 .ecosystem-google i {
+  background: conic-gradient(from 45deg, #4285f4, #34a853, #fbbc05, #ea4335, #4285f4);
 }
 
-.ecosystem-cloudflare i {
+.ecosystem-google i img {
+  filter: brightness(0) invert(1);
+  opacity: 0.96;
 }
 
 .ecosystem-github i {
-  color: #f4f4f5;
-  background: transparent;
+  color: #d4d4d8;
   border: 0;
-}
-
-.ecosystem-claude i,
-.ecosystem-codex i,
-.ecosystem-solana i,
-.ecosystem-deepseek i,
-.ecosystem-aws i,
-.ecosystem-google i,
-.ecosystem-cloudflare i,
-.ecosystem-github i {
-  color: #f4f4f5;
-}
-
-.ecosystem-claude i img,
-.ecosystem-codex i img,
-.ecosystem-solana i img,
-.ecosystem-deepseek i img,
-.ecosystem-aws i img,
-.ecosystem-google i img,
-.ecosystem-github i img {
-  filter: invert(1);
 }
 
 @keyframes ecosystem-scroll {
@@ -2029,6 +2121,16 @@ body.light-route {
 
 @media (prefers-reduced-motion: reduce) {
   .ecosystem-track {
+    animation: none;
+  }
+
+  .wordmark-draw {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .wordmark-fill {
+    opacity: 1;
     animation: none;
   }
 }
@@ -2601,10 +2703,12 @@ body.light-route {
   }
 
   .hero-wordmark {
-    width: 100%;
-    transform: none;
-    font-size: clamp(58px, 18vw, 70px);
-    text-align: center;
+    width: min(100%, 340px);
+    margin-top: 2px;
+  }
+
+  .hero-wordmark text {
+    font-size: 140px;
   }
 
   .pay-home-copy h1 {
@@ -2725,17 +2829,17 @@ body.light-route {
 
   .pay-page {
     display: block;
-    width: 100vw;
-    max-width: 100vw;
-    padding: 0 16px;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
     overflow-x: hidden;
   }
 
   .pay-card {
-    width: calc(100vw - 32px);
+    width: 100%;
     max-width: 358px;
-    margin-right: 0;
-    margin-left: 0;
+    margin-right: auto;
+    margin-left: auto;
   }
 
   .pay-card-body {

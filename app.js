@@ -1,10 +1,10 @@
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 const TOKENS = [
-  { symbol: "USDC", name: "USD Coin", className: "usdc", balance: "1,240.82", price: 1, verified: true },
-  { symbol: "SOL", name: "Solana", className: "sol", balance: "18.42", price: 162.34, verified: true },
-  { symbol: "JUP", name: "Jupiter", className: "jup", balance: "3,480.00", price: 1.18, verified: true },
-  { symbol: "BONK", name: "Bonk", className: "bonk", balance: "42,000,000", price: 0.000021, verified: true },
+  { symbol: "USDC", name: "USD Coin", className: "usdc", icon: "/assets/tokens/usdc.png", balance: "1,240.82", price: 1, verified: true },
+  { symbol: "SOL", name: "Solana", className: "sol", icon: "/assets/tokens/sol.svg", balance: "18.42", price: 162.34, verified: true },
+  { symbol: "JUP", name: "Jupiter", className: "jup", icon: "/assets/tokens/jup.png", balance: "3,480.00", price: 1.18, verified: true },
+  { symbol: "BONK", name: "Bonk", className: "bonk", icon: "/assets/tokens/bonk.png", balance: "42,000,000", price: 0.000021, verified: true },
 ];
 
 const state = {
@@ -145,12 +145,14 @@ function createHeader() {
     <header class="topbar">
       <a class="brand" href="/" data-link aria-label="jup.sh home">
         <span class="brand-mark" aria-hidden="true">
-          <span class="brand-symbol">🌈</span>
+          <img src="/assets/logos/solana.svg" alt="" />
         </span>
       </a>
       <nav class="nav">
-        <a href="https://jerrywang33.github.io/jup-sh/" target="_blank" rel="noreferrer">Docs</a>
-        <a href="https://github.com/jerrywang33/jup-sh" target="_blank" rel="noreferrer">GitHub</a>
+        <a class="nav-docs" href="https://jerrywang33.github.io/jup-sh/" target="_blank" rel="noreferrer">Docs</a>
+        <a class="nav-github" href="https://github.com/jerrywang33/jup-sh" target="_blank" rel="noreferrer" aria-label="GitHub">
+          <img src="/assets/logos/github.svg" alt="" />
+        </a>
       </nav>
     </header>
   `;
@@ -165,7 +167,11 @@ function createFooter() {
 }
 
 function tokenIcon(token) {
-  return `<span class="token-icon ${token.className}">${token.symbol.slice(0, 1)}</span>`;
+  return `
+    <span class="token-icon ${token.className}">
+      <img src="${token.icon}" alt="" loading="lazy" />
+    </span>
+  `;
 }
 
 function fakeQR(seed) {
@@ -188,7 +194,7 @@ function fakeQR(seed) {
 
 function renderEcosystemWall() {
   const items = [
-    { label: "Qwen", logo: "/assets/logos/qwen.png", mark: "Q", tone: "qwen" },
+    { label: "Qwen", logo: "/assets/logos/qwen.png", mark: "Q", tone: "qwen", wordmark: true },
     { label: "Claude", logo: "/assets/logos/claude.svg", mark: "C", tone: "claude" },
     { label: "Codex", logo: "/assets/logos/openai.svg", mark: "AI", tone: "codex" },
     { label: "Jupiter", logo: "/assets/logos/jupiter.png", mark: "JUP", tone: "jupiter" },
@@ -196,13 +202,12 @@ function renderEcosystemWall() {
     { label: "DeepSeek", logo: "/assets/logos/deepseek.svg", mark: "D", tone: "deepseek" },
     { label: "AWS", logo: "/assets/logos/aws.svg", mark: "aws", tone: "aws" },
     { label: "Google Cloud", logo: "/assets/logos/googlecloud.svg", mark: "G", tone: "google" },
-    { label: "Cloudflare", logo: "/assets/logos/cloudflare.svg", mark: "CF", tone: "cloudflare" },
     { label: "GitHub", logo: "/assets/logos/github.svg", mark: "GH", tone: "github" },
   ];
   const row = items
     .map(
-      ({ label, logo, mark, tone }) => `
-        <span class="ecosystem-chip ecosystem-${tone}">
+      ({ label, logo, mark, tone, wordmark }) => `
+        <span class="ecosystem-chip ecosystem-${tone} ${wordmark ? "ecosystem-wordmark" : ""}">
           <i>
             ${
               logo
@@ -211,7 +216,7 @@ function renderEcosystemWall() {
             }
             <span>${mark}</span>
           </i>
-          <b>${label}</b>
+          ${wordmark ? "" : `<b>${label}</b>`}
         </span>
       `
     )
@@ -230,10 +235,33 @@ function renderEcosystemWall() {
 function renderHome() {
   return `
     <section class="pay-sh-hero">
-      <div class="hero-wordmark" data-word="JUP.SH" aria-label="JUP.SH">
-        ${["J", "U", "P", ".", "S", "H"]
-          .map((letter, index) => `<span style="--i: ${index}">${letter}</span>`)
-          .join("")}
+      <div class="hero-wordmark" aria-label="jup.sh">
+        <svg viewBox="0 0 760 220" role="img" aria-labelledby="wordmark-title">
+          <title id="wordmark-title">jup.sh</title>
+          <defs>
+            <linearGradient id="wordmarkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#14f195" />
+              <stop offset="48%" stop-color="#64f4d0" />
+              <stop offset="100%" stop-color="#9945ff" />
+            </linearGradient>
+            <filter id="wordmarkGlow" x="-18%" y="-28%" width="136%" height="156%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feColorMatrix
+                in="blur"
+                type="matrix"
+                values="0 0 0 0 0.08 0 0 0 0 0.95 0 0 0 0 0.72 0 0 0 0.48 0"
+                result="glow"
+              />
+              <feMerge>
+                <feMergeNode in="glow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <text class="wordmark-shadow" x="380" y="150" text-anchor="middle">jup.sh</text>
+          <text class="wordmark-draw" x="380" y="150" text-anchor="middle">jup.sh</text>
+          <text class="wordmark-fill" x="380" y="150" text-anchor="middle">jup.sh</text>
+        </svg>
       </div>
       <div class="pay-home-grid hero-single">
         <div class="pay-home-copy">
@@ -250,11 +278,12 @@ function renderHome() {
             <button class="terminal-line" type="button" data-copy-command>
               <span>
                 <em>$</em> <strong>pay</strong>
-                <code>--agent claude</code>
+                <code>--agent deepseek</code>
                 <code>--token SOL</code>
-                <code>--settle 20 USDC</code>
+                <code>--amount 20</code>
+                <code>--settle USDC</code>
               </span>
-              <small>Copy</small>
+              <small aria-label="Copy command"></small>
             </button>
           </div>
           <div class="agent-row">
@@ -422,7 +451,6 @@ function renderCheckout() {
   const recipient = state.intent?.recipient || state.invoice.wallet;
   const merchant = escapeHtml(state.invoice.merchant);
   const memo = escapeHtml(state.invoice.memo);
-  const avatar = escapeHtml(state.invoice.merchant.slice(0, 1));
   const reviewRows = state.intent?.policyChecks
     ? state.intent.policyChecks
         .map(
@@ -441,7 +469,7 @@ function renderCheckout() {
       <div class="pay-card checkout-pay-card">
         <div class="pay-card-head">
           <div class="merchant-pill">
-            <span class="avatar">${avatar}</span>
+            <span class="avatar agent-avatar" aria-hidden="true">🌈</span>
             <div>
               <strong>${merchant}</strong><br />
               <small class="note">${memo}</small>
@@ -538,7 +566,7 @@ function renderDocs() {
             inside policy continue automatically. Flagged payments return a
             Risk Review link.
           </p>
-          <div class="code-card">pay --agent claude --token SOL --settle 20 USDC</div>
+          <div class="code-card">pay --agent deepseek --token SOL --amount 20 --settle USDC</div>
         </section>
 
         <section id="model" class="doc-section">
@@ -676,7 +704,7 @@ document.addEventListener("click", (event) => {
 
   const command = event.target.closest("[data-copy-command]");
   if (command) {
-    navigator.clipboard?.writeText("pay --agent claude --token SOL --settle 20 USDC");
+    navigator.clipboard?.writeText("pay --agent deepseek --token SOL --amount 20 --settle USDC");
     showToast("Command copied.");
   }
 });

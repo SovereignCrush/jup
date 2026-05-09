@@ -26,7 +26,7 @@ npm run cli:alpha -- policy show
 ## Create A Payment Intent
 
 ```bash
-npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
+npm run cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 By default, this uses the mock quote provider and writes local intent JSON under
@@ -37,7 +37,7 @@ By default, this uses the mock quote provider and writes local intent JSON under
 Agents and scripts should use `--json`:
 
 ```bash
-npm run --silent cli:alpha -- pay --agent claude --token SOL --settle 20 USDC --json
+npm run --silent cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
 Exit codes:
@@ -54,7 +54,7 @@ The full JSON contract is documented in
 ## Jupiter Quote-Only Mode
 
 ```bash
-npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC --quote-provider jupiter
+npm run cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC --quote-provider jupiter
 ```
 
 This requests a Jupiter quote estimate only. It does not sign, submit, or

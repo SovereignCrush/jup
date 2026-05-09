@@ -44,7 +44,7 @@ pay codex
 jup.sh Phase 2 should also start from a working command:
 
 ```sh
-pay --agent claude --token SOL --settle 20 USDC
+pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 The website should explain the product, but the product should become an
@@ -83,7 +83,7 @@ pay.sh uses sandbox mode heavily for learning and testing.
 jup.sh should have a sandbox mode before any production payment path:
 
 ```sh
-pay --sandbox --agent claude --token SOL --settle 20 USDC
+pay --sandbox --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Sandbox should make it possible to test:
