@@ -169,11 +169,12 @@ try {
     run([
       "pay",
       "--agent",
-      "claude",
+      "deepseek",
       "--token",
       "SOL",
-      "--settle",
+      "--amount",
       "2",
+      "--settle",
       "USDC",
       "--recipient",
       "jup-sh-demo",
@@ -185,7 +186,7 @@ try {
     ])
   );
   assertPayIntentContract(approved, {
-    agent: "claude",
+    agent: "deepseek",
     payToken: "SOL",
     status: "ready_for_authorization",
     decision: "auto_pay",
@@ -198,11 +199,12 @@ try {
     [
       "pay",
       "--agent",
-      "claude",
+      "deepseek",
       "--token",
       "SOL",
-      "--settle",
+      "--amount",
       "20",
+      "--settle",
       "USDC",
       "--store",
       store,
@@ -212,7 +214,7 @@ try {
   );
   const intent = JSON.parse(pay);
   assertPayIntentContract(intent, {
-    agent: "claude",
+    agent: "deepseek",
     payToken: "SOL",
     status: "review_required",
     decision: "review_required",
@@ -237,11 +239,12 @@ try {
       [
         "pay",
         "--agent",
-        "claude",
+        "deepseek",
         "--token",
         "FAKE",
-        "--settle",
+        "--amount",
         "20",
+        "--settle",
         "USDC",
         "--store",
         store,
@@ -251,7 +254,7 @@ try {
     )
   );
   assertPayIntentContract(rejected, {
-    agent: "claude",
+    agent: "deepseek",
     payToken: "FAKE",
     status: "rejected",
     decision: "rejected",

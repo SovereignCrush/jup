@@ -7,8 +7,8 @@ description: Developer documentation for jup.sh.
 
 Risk and settlement for Solana agent payments.
 
-`jup.sh` is an early source-run developer alpha for exploring agent-native
-payments on Solana.
+`jup.sh` is an early source-run developer alpha for agent-native payments on
+Solana.
 
 ```txt
 Agents pay with any verified token.
@@ -16,13 +16,38 @@ Recipients settle in USDC.
 Policy decides when humans step in.
 ```
 
+## Read This First
+
+The docs are organized around the current engineering boundary:
+
+```mermaid
+flowchart LR
+  A["Architecture<br/>system model"]
+  B["Quickstart<br/>run locally"]
+  C["CLI JSON Contract<br/>agent interface"]
+  D["Jupiter Quote Design<br/>settlement boundary"]
+  E["Risk Review Export<br/>human fallback"]
+
+  A --> B --> C
+  C --> D
+  C --> E
+```
+
+Recommended order:
+
+1. [Architecture](architecture.md) - system boundary, diagrams, data model.
+2. [Quickstart](quickstart.md) - run the alpha locally.
+3. [CLI JSON Contract](cli-json-contract.md) - agent-facing output and exit codes.
+4. [Jupiter Quote-Only Design](jupiter-quote-design.md) - token-to-USDC quote boundary.
+5. [Risk Review Export Design](risk-review-export-design.md) - static review URL model.
+
 ## Current Alpha
 
 The first milestone is `v0.1.0-alpha.0`.
 
 It includes:
 
-- local Rust CLI;
+- source-run Rust CLI;
 - local policy checks;
 - mock settlement quotes;
 - optional Jupiter quote-only settlement estimates;
@@ -41,16 +66,17 @@ It does not include:
 - remote backend persistence;
 - a published npm package.
 
-## Start Here
+## Core Command
 
-- [Architecture](architecture.md)
-- [Quickstart](quickstart.md)
-- [CLI JSON Contract](cli-json-contract.md)
-- [0.1.0-alpha.0 Release Notes](releases/0.1.0-alpha.0.md)
+```bash
+pay --agent deepseek --token SOL --amount 20 --settle USDC
+```
 
-Read [Architecture](architecture.md) first if you want the system model:
-intent creation, policy decisions, Jupiter quote-only settlement, Risk Review,
-and the current alpha boundary.
+In source-run form:
+
+```bash
+npm run cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC
+```
 
 ## Product Boundary
 

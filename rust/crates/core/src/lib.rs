@@ -598,7 +598,7 @@ mod tests {
 
     fn input(settle_amount: f64) -> CreatePaymentIntentInput {
         CreatePaymentIntentInput {
-            agent: "claude".to_string(),
+            agent: "deepseek".to_string(),
             pay_token: "SOL".to_string(),
             settle_amount,
             settle_token: "USDC".to_string(),

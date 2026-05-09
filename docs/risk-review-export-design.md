@@ -5,18 +5,39 @@ description: How local payment intents are exported to hosted Risk Review pages.
 
 # Risk Review Export Design
 
-This phase connects the local CLI intent store to the static Risk Review page
-without adding a backend.
+Risk Review is the human fallback path.
 
-## Goal
+The alpha does not have a backend intent API, so a saved local intent can be
+exported into a hosted static review URL. This connects the CLI to the website
+without adding accounts, auth, storage, or server deployment.
 
-The CLI can already create and save local intents:
+## Review Flow
+
+```mermaid
+flowchart LR
+  CLI["jup.sh CLI"]
+  Store["local intent store<br/>.jup-sh/intents"]
+  Export["intent export"]
+  URL["/pay/:id#intent=..."]
+  Browser["static Risk Review page"]
+  User["human reviewer"]
+
+  CLI --> Store
+  Store --> Export --> URL --> Browser --> User
+```
+
+The review page is not the primary payment flow. It appears only when policy
+returns `review_required`.
+
+## Export Command
+
+The CLI saves local intents under:
 
 ```txt
 .jup-sh/intents/<intent_id>.json
 ```
 
-`intent export` turns a saved intent into a hosted review URL:
+Export a saved intent:
 
 ```bash
 jup-sh intent export intent_abc123
@@ -28,64 +49,75 @@ Output:
 https://jup.sh/pay/intent_abc123#intent=<base64url-json-payload>
 ```
 
-The website reads the `#intent=` fragment and renders the real intent data in
-Risk Review.
+The website reads the `#intent=` fragment and renders the real intent data.
 
 ## Why URL Fragment
 
-Cloudflare Pages is currently serving a static app. It cannot read a user's
-local `.jup-sh/intents` directory, and adding a backend would pull in API
-storage, authentication, and deployment complexity too early.
+The current website is a static Cloudflare Pages app. It cannot read a user's
+local `.jup-sh/intents` directory.
 
-A URL fragment is enough for MVP review:
+A URL fragment is the smallest useful bridge:
 
-- no backend required
-- works with the current static site
-- keeps CLI and Risk Review connected
-- does not send the fragment to the server in normal browser requests
+- no backend required;
+- works with the current static app;
+- keeps CLI and Risk Review connected;
+- normal browser requests do not send fragments to the server;
+- easy to replace later with a backend intent API.
 
-## Non-Goals
+## Payload Shape
 
-This phase does not:
+The exported payload is:
 
-- store intents remotely
-- authenticate users
-- sign transactions
-- execute swaps
-- include private keys or signatures
-- handle sensitive customer data in the URL
+```txt
+base64url(JSON.stringify(PaymentIntent))
+```
 
-## Payload Rules
+No padding is used.
 
-The exported payload is the serialized `PaymentIntent` JSON encoded with
-base64url without padding.
+Allowed payload fields:
 
-The payload may include:
+- intent ID;
+- agent name;
+- payer token;
+- recipient label or address;
+- settlement amount and token;
+- quote;
+- status;
+- decision;
+- reasons;
+- policy checks;
+- review URL;
+- created timestamp.
 
-- intent ID
-- agent name
-- payer token
-- settlement amount and token
-- quote
-- status
-- decision
-- reasons
-- policy checks
-- review URL
-- created timestamp
+Forbidden payload fields:
 
-The payload must not include:
+- private keys;
+- wallet signatures;
+- unsigned transaction bytes;
+- access tokens;
+- API keys;
+- sensitive customer data.
 
-- private keys
-- wallet signatures
-- unsigned transaction bytes
-- access tokens
-- API keys
-- sensitive customer data
+## Security Boundary
+
+```mermaid
+flowchart TB
+  Safe["safe to export<br/>intent + policy evidence"]
+  Unsafe["never export<br/>keys + signatures + secrets + transaction bytes"]
+  Page["static review page"]
+
+  Safe --> Page
+  Unsafe -. blocked .-> Page
+```
+
+The fragment model is acceptable only because the alpha payload contains review
+metadata, not signing material. It should not be used for sensitive customer
+data or production payment authorization.
 
 ## Future Backend Path
 
-The fragment export should be replaced when a backend intent API exists:
+When a backend exists, the URL fragment should be replaced by a durable intent
+API:
 
 ```txt
 POST /api/intents
@@ -93,5 +125,13 @@ GET  /api/intents/:id
 GET  /pay/:id
 ```
 
-At that point, `intent export` can upload or sync a local intent and return a
-short hosted review URL.
+At that point:
+
+- `intent export` can upload or sync the local intent;
+- the review URL can be short and shareable;
+- payload access can be authenticated;
+- approval/rejection can be persisted;
+- status and receipts can be attached to the same intent.
+
+Until then, fragment export is an MVP bridge, not the final review
+architecture.

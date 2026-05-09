@@ -3,124 +3,47 @@ title: CLI Technical Design
 description: Technical design for the jup.sh source-run CLI alpha.
 ---
 
-# jup.sh CLI Technical Design
+# CLI Technical Design
 
-Phase 1 turns the product narrative into a local command that agents and humans
-can run.
+The CLI is the first real product surface for `jup.sh`.
 
-The goal is intentionally narrow:
+The website explains the idea. The CLI validates whether an agent can create a
+payment intent, receive a deterministic policy result, and hand off to Risk
+Review when needed.
 
-```txt
-agent intent -> pre-policy -> settlement quote -> quote policy -> local intent record -> review URL
-```
+## Goal
 
-Phase 1 does not sign transactions, custody funds, submit swaps, or execute real
-payments.
-
-## 1. Product Goal
-
-The CLI should make this command real:
+Make this command meaningful:
 
 ```bash
 jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
-Expected result:
-
-```json
-{
-  "intentId": "intent_...",
-  "agent": "claude",
-  "payToken": "SOL",
-  "settlement": {
-    "amount": 20,
-    "token": "USDC"
-  },
-  "status": "review_required",
-  "decision": "review_required",
-  "nextAction": "open_review",
-  "riskLevel": "medium",
-  "reasons": [
-    "recipient is not trusted",
-    "settlement amount exceeds auto-pay limit of 5 USDC"
-  ],
-  "reviewUrl": "https://jup.sh/pay/intent_..."
-}
-```
-
-This is the first working version of the jup.sh flow:
+The CLI should produce a structured local payment intent:
 
 ```txt
-Agents pay with any verified token.
-Recipients settle in USDC.
-Policy decides when humans step in.
+agent intent -> policy checks -> quote estimate -> final decision -> local record
 ```
 
-## 2. Non-Goals
+It should not sign, submit, or execute a payment in the alpha.
 
-Phase 1 does not include:
-
-- Real Jupiter API integration.
-- Real Solana Pay transaction request generation.
-- Wallet signing.
-- Token transfer or swap execution.
-- Remote backend persistence.
-- Authentication.
-- A published npm package.
-
-These are deliberately left for later phases.
-
-## 3. System Design
-
-```mermaid
-flowchart LR
-  A[Agent or user] --> B[jup-sh CLI]
-  B --> C[Payment Intent Parser]
-  C --> D[Policy Engine]
-  C --> E[Mock Settlement Quote]
-  D --> F{Decision}
-  E --> F
-  F --> G[Local intent JSON]
-  G -->|auto_pay| H[Local result]
-  G -->|review_required| I[Risk Review URL]
-  G -->|rejected| J[Rejected result]
-  I --> K[jup.sh Risk Review page]
-```
-
-The CLI owns command parsing and terminal output. The core crate owns the
-reusable payment intent logic.
+## Command Surface
 
 ```mermaid
 flowchart TB
-  subgraph CLI
-    A[rust/crates/cli]
-  end
+  Root["jup-sh"]
+  Pay["pay"]
+  Intent["intent"]
+  Policy["policy"]
 
-  subgraph Core Crate
-    B[create_payment_intent]
-    C[evaluate_policy]
-    D[SettlementQuoter]
-    E[MockSettlementQuoter]
-  end
-
-  A --> B
-  B --> C
-  B --> D
-  D --> E
-```
-
-## 4. Command Interface
-
-Quickstart from source:
-
-```bash
-npm install
-npm run cli -- policy show
-npm run cli -- policy init
-npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC
-npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC --quote-provider jupiter
-npm run cli -- intent list
-npm run cli -- intent export intent_abc123
+  Root --> Pay
+  Root --> Intent
+  Root --> Policy
+  Intent --> List["list"]
+  Intent --> Show["show"]
+  Intent --> Export["export"]
+  Policy --> ShowPolicy["show"]
+  Policy --> InitPolicy["init"]
 ```
 
 Primary command:
@@ -129,66 +52,55 @@ Primary command:
 jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
-Options:
+Important options:
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--agent` | yes | Agent name, such as `claude`, `codex`, or `deepseek`. |
-| `--token` | yes | Payer token symbol. Phase 1 supports verified mock symbols only. |
-| `--settle` | yes | Settlement amount and token. Phase 1 supports USDC settlement. |
-| `--recipient` | no | Recipient address or label. Unknown recipients trigger review by default. |
+| `--agent` | yes | Agent name, such as `deepseek`, `claude`, `qwen`, or `codex`. |
+| `--token` | yes | Payer token symbol. |
+| `--amount` | yes | Settlement amount. Preferred syntax is `--amount 20 --settle USDC`. |
+| `--settle` | yes | Settlement token. The alpha supports `USDC`. |
+| `--recipient` | no | Recipient address or local label. Unknown recipients trigger review by default. |
 | `--reference` | no | External reference or memo. |
-| `--json` | no | Print JSON only. |
+| `--json` | no | Print only the JSON contract. |
 | `--quote-provider` | no | `mock` by default. Use `jupiter` for quote-only real routing. |
 | `--jupiter-quote-url` | no | Defaults to Jupiter Swap quote API. |
 | `--jupiter-api-key` | no | Optional API key. Defaults to `JUPITER_API_KEY` when set. |
 | `--slippage-bps` | no | Slippage tolerance for Jupiter quotes. Defaults to `50`. |
 | `--review-base-url` | no | Defaults to `https://jup.sh`. |
+| `--policy` | no | Optional policy file. Defaults to `./jup.policy.json` when present. |
 | `--store` | no | Intent storage directory. Defaults to `.jup-sh/intents`. |
 
-`pay --json` is the stable agent-facing output mode. It prints only the
-serialized payment intent to stdout.
+The legacy form `--settle 20 USDC` is still accepted for compatibility, but new
+examples should use `--amount 20 --settle USDC`.
 
-The field-level contract is defined in:
+## Runtime Architecture
 
-```txt
-docs/cli-json-contract.md
+```mermaid
+flowchart LR
+  Clap["clap parser"]
+  Input["CreatePaymentIntentInput"]
+  Policy["Policy loader"]
+  Quoter["SettlementQuoter"]
+  Core["jup_sh_core"]
+  Store["intent store"]
+  Output["human output or JSON"]
+
+  Clap --> Input
+  Clap --> Policy
+  Clap --> Quoter
+  Input --> Core
+  Policy --> Core
+  Quoter --> Core
+  Core --> Store
+  Core --> Output
 ```
 
-`pay` exit codes:
+The CLI owns parsing, storage, environment variables, and terminal behavior.
+The core crate owns payment intent creation, policy evaluation, quote policy,
+and output models.
 
-| Exit code | Meaning |
-| --- | --- |
-| `0` | The intent is inside policy and ready for local authorization. |
-| `2` | The intent is valid, but policy requires Risk Review. |
-| `1` | The intent is rejected or the command failed. |
-
-Show a saved intent:
-
-```bash
-jup-sh intent list
-jup-sh intent list --json
-jup-sh intent export intent_abc123
-jup-sh intent export intent_abc123 --payload-only
-jup-sh intent show intent_abc123
-jup-sh intent show intent_abc123 --json
-```
-
-Manage local policy:
-
-```bash
-jup-sh policy show
-jup-sh policy show --json
-jup-sh policy init
-jup-sh policy init --path jup.policy.json --force
-```
-
-## 5. Rust Workspace
-
-pay.sh is primarily implemented as a Rust workspace. jup.sh should follow the
-same direction for CLI and payment logic.
-
-Phase 1 structure:
+## Rust Workspace
 
 ```txt
 rust/
@@ -200,24 +112,29 @@ rust/
       src/main.rs
 ```
 
-The static website remains JavaScript. The CLI and reusable payment-intent logic
-live in Rust.
+Responsibilities:
 
-## 6. Core Crate
+| Crate | Owns |
+| --- | --- |
+| `jup_sh_core` | Data models, policy evaluation, quote abstraction, intent creation. |
+| `jup-sh-cli` | Commands, CLI args, policy file loading, intent persistence, output formatting. |
 
-The first core surface is minimal and internal:
+This split matters because a future SDK or backend should reuse the core crate
+without inheriting CLI-specific behavior.
+
+## Core API
+
+The central core call is:
 
 ```rust
-use jup_sh_core::{create_payment_intent, CreatePaymentIntentInput};
+create_payment_intent_with_quoter(input, policy, review_base_url, quoter)
 ```
 
-### create_payment_intent
-
-Input:
+Inputs:
 
 ```rust
 CreatePaymentIntentInput {
-    agent: "claude".into(),
+    agent: "deepseek".into(),
     pay_token: "SOL".into(),
     settle_amount: 20.0,
     settle_token: "USDC".into(),
@@ -233,6 +150,8 @@ PaymentIntent {
     intent_id,
     agent,
     pay_token,
+    recipient,
+    reference,
     settlement,
     quote,
     status,
@@ -246,11 +165,11 @@ PaymentIntent {
 }
 ```
 
-### evaluate_policy
+## Policy Evaluation
 
-Phase 1 policy is deterministic and local.
+Policy is deterministic and local in the alpha.
 
-Default policy:
+Default shape:
 
 ```json
 {
@@ -264,39 +183,7 @@ Default policy:
 }
 ```
 
-Decision values:
-
-| Decision | Meaning |
-| --- | --- |
-| `auto_pay` | The intent is inside policy. Later phases may proceed to wallet authorization. |
-| `review_required` | The intent is valid, but requires human review before signing. |
-| `rejected` | The intent is outside allowed policy. |
-
-Intent status values:
-
-| Status | Meaning |
-| --- | --- |
-| `ready_for_authorization` | Policy passed. The next step is local authorization in a future phase. |
-| `review_required` | The intent is valid, but should be reviewed before signing. |
-| `rejected` | The intent should not continue. |
-
-Agent-facing action values:
-
-| Next action | Meaning |
-| --- | --- |
-| `ready_for_authorization` | Policy passed. Later phases may continue to local wallet authorization. |
-| `open_review` | Policy requires Risk Review before signing. |
-| `rejected` | The intent should not continue. |
-
-Risk levels:
-
-| Risk level | Meaning |
-| --- | --- |
-| `low` | Policy passed. |
-| `medium` | Valid payment, but review is required. |
-| `high` | Rejected by policy. |
-
-Policy checks are returned as structured entries:
+Policy checks are returned as evidence:
 
 ```json
 {
@@ -306,176 +193,115 @@ Policy checks are returned as structured entries:
 }
 ```
 
-Quote-aware policy checks are appended after a settlement quote is available:
+Decision mapping:
 
-```json
-{
-  "name": "quote_price_impact",
-  "status": "review",
-  "message": "quote price impact is 250 bps, above the 100 bps policy limit"
-}
+| Decision | Status | Next action | Exit code |
+| --- | --- | --- | --- |
+| `auto_pay` | `ready_for_authorization` | `ready_for_authorization` | `0` |
+| `review_required` | `review_required` | `open_review` | `2` |
+| `rejected` | `rejected` | `rejected` | `1` |
+
+## Quote Boundary
+
+```mermaid
+classDiagram
+  class SettlementQuoter {
+    <<trait>>
+    quote_settlement(input) SettlementQuote
+  }
+
+  class MockSettlementQuoter
+  class JupiterSettlementQuoter
+
+  SettlementQuoter <|.. MockSettlementQuoter
+  SettlementQuoter <|.. JupiterSettlementQuoter
 ```
 
-Rejected pre-policy intents do not request a quote.
+The mock provider is the default for local development and tests.
 
-### quote_settlement
+Jupiter mode is quote-only:
 
-Phase 1 uses a `SettlementQuoter` boundary. The CLI uses `MockSettlementQuoter`
-by default, which keeps local development and tests stable. It can also use a
-quote-only `JupiterSettlementQuoter` through `--quote-provider jupiter`.
-
-The boundary is intentionally small:
-
-```rust
-pub trait SettlementQuoter {
-    fn quote_settlement(
-        &self,
-        input: &CreatePaymentIntentInput,
-    ) -> Result<SettlementQuote, JupShError>;
-}
+```bash
+jup-sh pay \
+  --agent deepseek \
+  --token SOL \
+  --amount 20 \
+  --settle USDC \
+  --quote-provider jupiter
 ```
 
-Example:
+The quote is used by policy checks such as `quote_price_impact`. The alpha does
+not request swap transaction payloads.
 
-```json
-{
-  "source": "mock_jupiter",
-  "inputToken": "SOL",
-  "inputAmount": 0.133333,
-  "settleAmount": 20,
-  "settleToken": "USDC",
-  "priceImpactBps": 12
-}
-```
+## Intent Storage
 
-Current provider path:
-
-```txt
-MockSettlementQuoter by default
-JupiterSettlementQuoter when explicitly requested
-```
-
-The intent and policy code does not need to change when the quote provider
-changes.
-
-Jupiter quote-only details live in `docs/jupiter-quote-design.md`.
-
-## 7. Local Intent Store
-
-The CLI saves every generated intent to:
+Local intents are stored as JSON files:
 
 ```txt
 .jup-sh/intents/<intent_id>.json
 ```
 
-This keeps Phase 1 local while making the review URL's intent ID inspectable.
-
-The CLI can read a saved intent:
+Commands:
 
 ```bash
 jup-sh intent list
-jup-sh intent export intent_abc123
-jup-sh intent show intent_abc123
+jup-sh intent show intent_xxx
+jup-sh intent export intent_xxx
 ```
 
-`--store <dir>` can override the default intent directory for tests or custom
-local workflows.
-
-`intent export` converts a saved local intent into a hosted Risk Review URL:
+Export turns the saved local intent into a static Risk Review URL:
 
 ```txt
-https://jup.sh/pay/intent_abc123#intent=<base64url-json-payload>
+https://jup.sh/pay/intent_xxx#intent=<base64url-json-payload>
 ```
 
-The fragment payload is a temporary MVP bridge between local CLI intents and the
-static Risk Review page. It should not contain private keys, signatures, or
-sensitive customer data.
+## JSON Output Mode
 
-## 8. Local Policy File
+`pay --json` is the agent contract. It prints one JSON object to stdout and
+uses exit codes for control flow.
 
-The CLI may load `jup.policy.json` from the current working directory.
+See [CLI JSON Contract](cli-json-contract.md) for the full schema.
 
-Example:
+## Release Gate
 
-```json
-{
-  "maxAutoSettleUSDC": 10,
-  "maxAllowedSettleUSDC": 250,
-  "maxPriceImpactBps": 100,
-  "reviewHighPriceImpact": true,
-  "verifiedTokens": ["USDC", "SOL", "JUP", "BONK"],
-  "trustedRecipients": ["jup-sh-demo"],
-  "reviewUnknownRecipients": true
-}
-```
-
-If no local file exists, the CLI uses the default policy.
-
-The CLI can show the effective policy:
+The alpha release gate is:
 
 ```bash
-jup-sh policy show
-jup-sh policy show --json
+npm run release:check
 ```
 
-The CLI can write a default policy file:
+It runs:
 
-```bash
-jup-sh policy init
+- `npm run check`;
+- alpha smoke tests;
+- npm package dry-run checks;
+- Rust workspace tests.
+
+## Non-Goals
+
+The CLI alpha does not implement:
+
+- wallet signing;
+- swap execution;
+- custody;
+- real Solana Pay transaction request generation;
+- remote backend persistence;
+- published npm package distribution.
+
+## Implementation Sequence
+
+```mermaid
+flowchart LR
+  A["1. stable CLI contract"]
+  B["2. quote-aware policy"]
+  C["3. Risk Review export"]
+  D["4. transaction request"]
+  E["5. local signing boundary"]
+  F["6. settlement status"]
+
+  A --> B --> C --> D --> E --> F
 ```
 
-`policy init` does not overwrite an existing file unless `--force` is passed.
-
-## 9. Output Rules
-
-Default output should be readable:
-
-```txt
-jup.sh payment intent
-
-Intent: intent_...
-Agent: claude
-Pay with: SOL
-Settle: 20 USDC
-Status: review_required
-Decision: review_required
-Next action: open_review
-Risk: medium
-Reason: recipient is not trusted
-Policy checks:
-- [pass] verified_token: SOL is verified
-- [review] recipient_trust: recipient is not trusted
-- [pass] quote_price_impact: quote price impact is 12 bps, within the 100 bps policy limit
-Review: https://jup.sh/pay/intent_...
-Saved: .jup-sh/intents/intent_....json
-```
-
-`--json` prints only JSON for agent and script usage.
-
-List output should stay compact:
-
-```txt
-jup.sh local payment intents
-
-intent_...  claude  20 USDC  review_required  2026-05-08T...
-```
-
-## 10. Future Phases
-
-Phase 2:
-
-- Replace mock quote with Jupiter API quote.
-- Persist intents in a small backend.
-- Make Risk Review page load intent details by ID.
-
-Phase 3:
-
-- Generate Solana Pay transaction requests.
-- Add wallet authorization.
-- Add receipt and settlement status.
-
-Phase 4:
-
-- Publish npm package.
-- Add MCP integration.
-- Add richer risk policies and agent-specific spending limits.
+The current alpha covers steps 1 through 3. Later phases should not skip the
+authorization boundary: agents create intents, users or local policy authorize
+funds.

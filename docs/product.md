@@ -3,25 +3,30 @@ title: Product Document
 description: Product positioning and phase direction for jup.sh.
 ---
 
-# jup.sh Product Document
+# Product Document
 
-## 1. V1 Snapshot
-
-Date: 2026-05-08
-
-`jup.sh` V1 is live as a public product shell at:
+`jup.sh` is a Jupiter-powered risk and settlement layer for Solana agent
+payments.
 
 ```txt
-https://jup.sh
+Agents pay with any verified token.
+Recipients settle in USDC.
+Policy decides when humans step in.
 ```
 
-V1 establishes the positioning, visual direction, and first product primitive:
+The product is intentionally early. The current version is a public website,
+developer docs, and source-run CLI alpha. It is not a production payment
+system.
+
+## Positioning
+
+The shortest useful positioning:
 
 ```txt
 Risk and settlement for Solana agent payments.
 ```
 
-Core positioning:
+The fuller version:
 
 ```txt
 jup.sh is a Jupiter-powered risk and settlement layer for Solana agent payments.
@@ -29,214 +34,180 @@ Agents can pay with any verified token, recipients settle in USDC, and policy
 decides when human review is required.
 ```
 
-Primary command shown on the site:
+The two product handles are:
 
-```txt
+- Jupiter-powered settlement;
+- policy-driven risk management.
+
+This should not be framed as a wallet, a trading UI, or a manual payment-link
+tool. Payment links are only the review fallback surface.
+
+## Product Model
+
+```mermaid
+flowchart LR
+  Agent["agent payment intent"]
+  Policy["policy + risk checks"]
+  Decision{"decision"}
+  Auto["auto-pay candidate"]
+  Review["Risk Review"]
+  Reject["reject"]
+  Jupiter["Jupiter settlement<br/>token -> USDC"]
+  Auth["local authorization<br/>future"]
+  Settle["recipient gets USDC<br/>future"]
+
+  Agent --> Policy --> Decision
+  Decision -->|"inside policy"| Auto --> Jupiter
+  Decision -->|"needs context"| Review --> Jupiter
+  Decision -->|"hard fail"| Reject
+  Jupiter --> Auth --> Settle
+```
+
+The default product path should be automatic. Human review appears only when
+policy or risk signals require it.
+
+## Current V1 Surface
+
+Current public surface:
+
+- website at `https://www.jup.sh`;
+- GitHub repo at `https://github.com/jerrywang33/jup-sh`;
+- GitHub Pages docs at `https://jerrywang33.github.io/jup-sh/`;
+- source-run Rust CLI;
+- local npm wrapper prototype;
+- static Risk Review page;
+- Cloudflare Pages deployment.
+
+Current homepage command:
+
+```bash
 pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
-## 2. Product Thesis
+The homepage communicates the target stack:
 
-`jup.sh` should become an agent-first Solana payment risk and settlement layer.
+- agents: Claude, Codex, DeepSeek, Kimi, MiniMax, Qwen;
+- powered by: Jupiter API and Solana;
+- ecosystem signals: Qwen, Claude, Codex, Jupiter, Solana, DeepSeek, AWS,
+  Google Cloud, GitHub.
 
-The product should not behave like a traditional checkout where every payment
-requires a human to open a link and confirm the route. The default path should
-be automatic, and human review should appear only when policy or risk signals
-require it.
+## Current Alpha Capabilities
 
-The core model is:
+The source alpha implements:
 
-```txt
-Agents pay with any verified token. Recipients settle in USDC. Policy decides
-when humans step in.
-```
+- local payment intent creation;
+- deterministic policy checks;
+- mock settlement quote provider;
+- optional Jupiter quote-only estimates;
+- quote-aware risk checks;
+- local policy inspection and initialization;
+- local intent persistence under `.jup-sh/intents`;
+- Risk Review URL export through `intent export`;
+- `intent list` and `intent show`;
+- agent-facing JSON output;
+- CLI exit code contract;
+- release gate and smoke tests.
 
-The two product handles are:
+## Current Non-Goals
 
-```txt
-Jupiter-powered settlement + policy-driven risk management.
-```
+The alpha does not implement:
 
-Jupiter helps agents pay with any verified token and settle recipients in USDC.
-The risk layer decides whether a payment should auto-execute, require review,
-or be rejected.
+- wallet signing;
+- swap execution;
+- custody;
+- real payment settlement;
+- Solana Pay transaction request generation;
+- durable backend persistence;
+- authentication;
+- published npm package distribution.
 
-This makes the payment link a fallback review surface, not the main product.
+These are not accidental gaps. They are boundaries that keep the first
+milestone focused on agent intent, policy, and review.
 
-## 3. Two-Layer Model
+## Policy As The First Risk Engine
 
-### Layer 1: Auto Pay
-
-Agents create payment intents through CLI, SDK, or API. Each intent passes
-through a policy and risk check before execution.
-
-If the payment is inside the user's policy, it can continue automatically.
+The first useful risk module is policy, not an opaque AI model.
 
 Example checks:
 
-- Amount is below the per-payment limit.
-- Daily spend remains below the daily limit.
-- Token is verified or explicitly trusted.
-- Jupiter route has acceptable slippage and price impact.
-- Recipient is trusted or already known.
-- Agent source is allowed.
-- Payment frequency is normal.
+- token is verified;
+- settlement token is USDC;
+- amount is below hard limits;
+- amount is below auto-pay limits;
+- recipient is trusted or requires review;
+- Jupiter quote is available;
+- settlement token from quote matches the intent;
+- price impact is acceptable.
 
-### Layer 2: Risk Review
+Policy returns one of three outcomes:
 
-Risk Review is triggered only when a payment falls outside policy.
+| Outcome | Meaning |
+| --- | --- |
+| `auto_pay` | Valid and inside policy. |
+| `review_required` | Valid, but needs human context. |
+| `rejected` | Violates a hard rule. |
 
-Example triggers:
+This is the moat direction: the richer the policy and risk layer becomes, the
+more valuable `jup.sh` is as infrastructure rather than a thin UI.
 
-- First-time recipient.
-- Amount above the per-payment limit.
-- Daily limit exceeded or close to exceeded.
-- Token is unverified or low-liquidity.
-- Jupiter quote has high slippage or poor route quality.
-- Agent creates too many payments in a short window.
-- Payment description or merchant metadata is unclear.
+## Risk Review Role
 
-The review page should show:
+Risk Review is not the primary product. It is the fallback for flagged intents.
 
-- Amount.
-- Payer token.
-- USDC settlement amount.
-- Jupiter route.
-- Recipient wallet.
-- Risk reason.
-- Payment reference.
+It should show:
 
-## 4. What V1 Includes
+- agent name;
+- payer token;
+- USDC settlement amount;
+- recipient;
+- quote and route context;
+- policy decision;
+- review reasons;
+- policy check evidence;
+- approve or reject action in future phases.
 
-V1 includes:
+In the current alpha, the review page renders static intent data. Future
+versions should persist review decisions through an API.
 
-- A pay.sh-inspired landing page.
-- The `JUP.SH` wordmark and rainbow icon direction.
-- The risk and settlement positioning.
-- A command-first demo.
-- A terminal-style flow preview with policy and risk checks.
-- A Risk Review prototype at `/pay/:id`.
-- A create-payment prototype at `/pay/new`.
-- A homepage CTA that points to Risk Review instead of manual payment creation.
-- A public GitHub nav link.
-- Docs route remains available but is not shown in the top navigation.
-- Product docs in this repository.
-- CLI release plan for an eventual `npx jup-sh` developer workflow.
-- Local npm wrapper prototype for validating the future CLI package shape.
-- Cloudflare Pages deployment for `jup.sh`.
-- An early Rust CLI prototype.
-- Local payment intent creation.
-- Deterministic local policy checks.
-- Structured policy output for agents and humans.
-- A `SettlementQuoter` boundary with a mock Jupiter-style quoter.
-- Optional quote-only Jupiter settlement estimates through `--quote-provider jupiter`.
-- Quote-aware risk checks for settlement token and price impact.
-- Local policy inspection and initialization through `policy show` and `policy init`.
-- Local intent persistence under `.jup-sh/intents`.
-- Risk Review URL export for saved intents through `intent export`.
-- `intent list` and `intent show` for reading saved local intents.
+## Phase Direction
 
-Current agent list shown on the homepage:
+The next product milestones should be sequenced:
+
+```mermaid
+flowchart LR
+  A["1. stable CLI + JSON contract"]
+  B["2. policy profiles"]
+  C["3. SDK"]
+  D["4. Solana Pay transaction request"]
+  E["5. local wallet authorization"]
+  F["6. settlement status + receipt"]
+  G["7. hosted intent API"]
+
+  A --> B --> C --> D --> E --> F --> G
+```
+
+Recommended next phase:
 
 ```txt
-Claude
-Codex
-DeepSeek
-Kimi
-MiniMax
-Qwen
+Build a working CLI/SDK payment primitive with policy-gated Auto Pay,
+Risk Review fallback, Solana Pay transaction requests, and Jupiter
+token-to-USDC settlement.
 ```
 
-## 5. Product Layer
+The first credible end-to-end path:
 
-An agent needs to pay for a task, service, API call, digital good, or workflow
-step on Solana using a verified token.
+1. Agent calls `pay --agent deepseek --token SOL --amount 20 --settle USDC`.
+2. `jup.sh` creates a payment intent.
+3. Policy evaluates amount, token, recipient, and configured limits.
+4. Jupiter quote estimates token-to-USDC settlement.
+5. Quote-aware policy checks route risk.
+6. Clean payment continues to local authorization.
+7. Flagged payment opens Risk Review.
+8. Future transaction request settles USDC to the recipient.
 
-Expected product flow:
+## Target API Shape
 
-1. Agent creates a USDC-denominated payment intent.
-2. jup.sh checks pre-quote policy and risk.
-3. If pre-policy passes, jup.sh asks Jupiter API for a token-to-USDC settlement route.
-4. jup.sh applies quote-aware policy checks such as price impact.
-5. The clean path continues to local wallet authorization or the configured signing layer.
-6. If policy flags the payment, jup.sh opens Risk Review.
-7. Recipient receives USDC after settlement.
-
-Short version:
-
-```txt
-agent intent -> pre-policy -> Jupiter settlement -> quote policy -> authorize or review
-```
-
-## 6. Policy as the First Risk Engine
-
-Phase 2 does not need a complex AI risk system on day one. The first useful
-risk engine can be a clear policy layer.
-
-Example policy shape:
-
-```json
-{
-  "maxPerPaymentUSDC": 5,
-  "dailyLimitUSDC": 50,
-  "verifiedTokensOnly": true,
-  "allowedTokens": ["SOL", "USDC", "BONK"],
-  "maxSlippageBps": 50,
-  "maxPriceImpactBps": 100,
-  "reviewNewRecipients": true,
-  "reviewHighPriceImpact": true,
-  "reviewUnknownAgents": true
-}
-```
-
-The important product rule:
-
-```txt
-Policy decides whether a payment is automatic or requires Risk Review.
-```
-
-## 7. Current Limits
-
-V1 is an early product shell plus local CLI prototype. It does not yet include:
-
-- A real backend intent store.
-- A real SDK.
-- Real risk scoring.
-- Real Jupiter swap execution.
-- Real Solana Pay transaction request generation.
-- Real payment status verification.
-- Real wallet authorization.
-- A published CLI package.
-- Public docs navigation.
-
-These are intentionally left for Phase 2.
-
-## 8. Phase 2 Direction
-
-Phase 2 should turn the product shell into a real agent payment primitive.
-
-Recommended Phase 2 target:
-
-```txt
-Build a working intent API + CLI demo with policy-gated Auto Pay, Risk Review
-fallback, Solana Pay transaction requests, and Jupiter API token-to-USDC
-settlement.
-```
-
-Phase 2 should focus on one credible end-to-end path:
-
-1. `pay --agent deepseek --token SOL --amount 20 --settle USDC`
-2. CLI creates a payment intent.
-3. Local policy evaluates amount, token, recipient, and configured limits.
-4. CLI saves the intent locally.
-5. Backend stores the intent in later phases.
-6. Policy engine expands to route, recipient, agent, and frequency checks.
-7. If policy passes, payment proceeds to local wallet authorization.
-8. If policy flags it, user opens Risk Review.
-9. Jupiter route settles USDC to recipient.
-10. API returns status and receipt.
-
-## 9. Target API Shape
+Future hosted API:
 
 ```txt
 POST /api/intents
@@ -248,44 +219,24 @@ GET  /pay/:id
 GET  /api/intents/:id/status
 ```
 
-The hosted review link and API should represent the same underlying object: a
-payment intent. The link should only be necessary when policy requires human
-inspection.
+The API and review URL should represent the same object: a payment intent.
+Risk Review should only appear when policy requires human inspection.
 
-## 10. Open Source Plan
+## Brand Boundary
 
-The public repository should launch only when there is something useful for
-developers to run.
+`jup.sh` is an independent community-built tool.
 
-Suggested initial repo contents:
+It may say Jupiter-powered only in the sense that it uses Jupiter API/routing
+for token-to-USDC settlement. Do not imply official affiliation, partnership,
+endorsement, or acquisition.
 
-- Landing page source.
-- Intent API prototype.
-- Policy engine prototype.
-- Risk Review page.
-- CLI package skeleton.
-- Example agent payment command.
-- Solana Pay transaction request example.
-- Jupiter quote and swap integration notes.
-- Safety and brand disclaimer.
-
-## 11. Safety Rules
-
-The product should remain conservative:
+## Safety Rules
 
 - No custody of user funds.
 - No hidden routes.
 - No blind signing.
-- Only verified or trusted token inputs.
+- No agent-controlled private keys.
 - Explicit policy limits.
-- Inspectable risk reasons.
-- Risk Review must show amount, route, recipient, and payment reference.
-- Keep the Jupiter and Solana relationship wording accurate.
-
-## 12. Brand
-
-`jup.sh` is an independent community-built tool inspired by Jupiter routing and
-pay.sh-style agent payments.
-
-It should not imply official affiliation with Jupiter Exchange or Solana
-Foundation unless that relationship exists.
+- Verified or trusted token inputs.
+- Review evidence for every flagged payment.
+- Conservative rollout before money movement.

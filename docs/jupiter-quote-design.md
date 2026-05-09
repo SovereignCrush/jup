@@ -5,16 +5,25 @@ description: Quote-only Jupiter settlement estimates for jup.sh payment intents.
 
 # Jupiter Quote-Only Design
 
-This phase moves jup.sh from mock settlement quotes to optional real Jupiter
-quotes without signing or executing payments.
+Jupiter is the settlement primitive for `jup.sh`.
 
-## Goal
+The payer should be able to use any verified token. The recipient should settle
+in USDC. The current alpha only asks Jupiter for quote estimates; it does not
+request swap transactions or execute routes.
 
-The product command stays settlement-first:
+## Settlement Goal
+
+The command is settlement-first:
 
 ```bash
 jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
+
+This means:
+
+- payer token: `SOL`;
+- recipient settlement target: `20 USDC`;
+- policy should evaluate whether this payment can continue.
 
 With Jupiter enabled:
 
@@ -27,18 +36,59 @@ jup-sh pay \
   --quote-provider jupiter
 ```
 
-The CLI asks Jupiter for the estimated input amount needed to settle the target
-USDC amount. It still only creates a local payment intent.
+## Quote Flow
 
-The quote is now a risk input, not only display data:
+```mermaid
+flowchart LR
+  Intent["payment intent<br/>token + USDC amount"]
+  PrePolicy["pre-quote policy<br/>token + amount + recipient"]
+  Jupiter["Jupiter quote<br/>ExactOut"]
+  QuotePolicy["quote-aware policy<br/>settlement + price impact"]
+  Result{"final decision"}
 
-```txt
-intent -> pre-policy -> Jupiter quote -> quote policy -> final status
+  Intent --> PrePolicy
+  PrePolicy -->|"rejected"| Stop["stop before quote"]
+  PrePolicy -->|"valid"| Jupiter --> QuotePolicy --> Result
 ```
 
-## Current Boundary
+The quote is not just display data. It becomes policy evidence.
 
-The core crate already owns the quote boundary:
+## Why ExactOut
+
+`jup.sh` promises recipient settlement in USDC. The important amount is the
+recipient amount, not the payer input amount.
+
+For that reason, the alpha uses Jupiter quote mode equivalent to:
+
+```txt
+swapMode=ExactOut
+```
+
+Request shape:
+
+```txt
+GET https://api.jup.ag/swap/v1/quote
+  ?inputMint=<payer token mint>
+  &outputMint=<USDC mint>
+  &amount=<USDC raw amount>
+  &slippageBps=50
+  &swapMode=ExactOut
+```
+
+If configured, `JUPITER_API_KEY` is sent as `x-api-key`.
+
+CLI options:
+
+```bash
+--quote-provider jupiter
+--jupiter-api-key <key>
+--jupiter-quote-url <url>
+--slippage-bps 50
+```
+
+## Quote Provider Boundary
+
+The Rust core owns the quote abstraction:
 
 ```rust
 pub trait SettlementQuoter {
@@ -53,36 +103,15 @@ Implemented providers:
 
 | Provider | Source | Purpose |
 | --- | --- | --- |
-| `mock` | `MockSettlementQuoter` | Stable local development and tests. |
-| `jupiter` | `JupiterSettlementQuoter` | Quote-only real settlement estimate. |
+| `mock` | `MockSettlementQuoter` | Stable local tests and development. |
+| `jupiter` | `JupiterSettlementQuoter` | Real quote estimate without execution. |
 
-## Jupiter Request
-
-Phase 1 uses Jupiter's quote API with `swapMode=ExactOut` because jup.sh's
-product promise is recipient settlement in USDC.
-
-Request shape:
-
-```txt
-GET https://api.jup.ag/swap/v1/quote
-  ?inputMint=<payer token mint>
-  &outputMint=<USDC mint>
-  &amount=<USDC raw amount>
-  &slippageBps=50
-  &swapMode=ExactOut
-```
-
-`JUPITER_API_KEY` is sent as `x-api-key` when configured. The CLI also accepts:
-
-```bash
---jupiter-api-key <key>
---jupiter-quote-url <url>
---slippage-bps 50
-```
+The policy engine depends on the quote shape, not on a specific HTTP client.
+That keeps local tests deterministic and makes Jupiter optional in the alpha.
 
 ## Token Map
 
-The first quote-only implementation intentionally uses a small token map:
+The first implementation uses a deliberately small token map:
 
 | Symbol | Mint | Decimals |
 | --- | --- | --- |
@@ -91,11 +120,12 @@ The first quote-only implementation intentionally uses a small token map:
 | JUP | `JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN` | 6 |
 | BONK | `DezXAZ8z7PnrnRJjz3my2u6r5KiL3HR8APpPB2634B2` | 5 |
 
-Later phases should replace this with a verified token registry.
+Future versions should replace this with a verified token registry. The token
+registry should be a risk input, not only a UX convenience.
 
-## Returned Intent Quote
+## Returned Quote
 
-The returned `PaymentIntent.quote` keeps the existing product shape:
+The quote is embedded inside `PaymentIntent.quote`:
 
 ```json
 {
@@ -108,15 +138,22 @@ The returned `PaymentIntent.quote` keeps the existing product shape:
 }
 ```
 
-## Quote Policy
+The quote preserves the product language:
 
-After a quote is available, jup.sh appends quote-aware policy checks:
+- input token: what the payer would spend;
+- settlement amount: what the recipient should receive;
+- settlement token: USDC;
+- price impact: risk evidence.
+
+## Quote-Aware Policy
+
+After a quote is available, the core appends quote-aware checks:
 
 | Check | Meaning |
 | --- | --- |
-| `quote_available` | The quote provider returned a usable quote. |
-| `quote_settlement_token` | The quote still settles to USDC. |
-| `quote_price_impact` | The quote price impact is within policy or requires review. |
+| `quote_available` | The provider returned a usable quote. |
+| `quote_settlement_token` | The quote settles to the requested settlement token. |
+| `quote_price_impact` | Price impact is inside policy or requires review. |
 
 Default policy:
 
@@ -130,25 +167,39 @@ Default policy:
 If `priceImpactBps` exceeds `maxPriceImpactBps`, the intent becomes
 `review_required` unless high price impact review is disabled.
 
+## Failure Behavior
+
+The current alpha treats quote failure as a command failure for Jupiter mode.
+That is conservative: if route data is unavailable, the CLI should not pretend
+the payment is ready.
+
+Later versions may support a policy option such as:
+
+```json
+{
+  "reviewWhenQuoteUnavailable": true
+}
+```
+
+That would convert route failure into `review_required` instead of a hard
+command failure.
+
 ## Non-Goals
 
 This phase does not:
 
-- sign transactions
-- execute swaps
-- create Solana Pay transaction requests
-- custody funds
-- support arbitrary token discovery
-- replace the default mock provider
+- sign transactions;
+- execute swaps;
+- request Jupiter swap transaction payloads;
+- create Solana Pay transaction requests;
+- custody funds;
+- support arbitrary token discovery;
+- replace the default mock provider.
 
 ## Next Steps
 
-1. Add route quality and liquidity policy checks beyond price impact.
-2. Store quote metadata needed by Risk Review.
-3. Add verified token registry support.
+1. Add route quality checks beyond price impact.
+2. Store route metadata for Risk Review.
+3. Add a verified token registry.
 4. Generate Solana Pay transaction requests after quote behavior is stable.
-
-References:
-
-- Jupiter Swap quote API: https://developers.jup.ag/docs/api-reference/swap/quote
-- Jupiter Swap guide: https://developers.jup.ag/docs/swap/get-quote
+5. Keep Jupiter route construction behind the same `SettlementQuoter` boundary.
