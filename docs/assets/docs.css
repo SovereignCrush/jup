@@ -115,7 +115,7 @@ a:hover {
 
 .content {
   min-width: 0;
-  max-width: 880px;
+  max-width: 980px;
   padding: 52px 48px 96px;
 }
 
@@ -231,7 +231,8 @@ blockquote {
 }
 
 .mermaid svg {
-  max-width: 100%;
+  min-width: min(760px, 100%);
+  max-width: none;
   height: auto;
 }
 
