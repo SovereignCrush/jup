@@ -230,11 +230,7 @@ function renderEcosystemWall() {
 function renderHome() {
   return `
     <section class="pay-sh-hero">
-      <div class="hero-wordmark" data-word="JUP.SH" aria-label="JUP.SH">
-        ${["J", "U", "P", ".", "S", "H"]
-          .map((letter, index) => `<span style="--i: ${index}">${letter}</span>`)
-          .join("")}
-      </div>
+      <div class="hero-wordmark" data-word="JUP.SH" aria-label="JUP.SH">JUP.SH</div>
       <div class="pay-home-grid hero-single">
         <div class="pay-home-copy">
           <h1>
