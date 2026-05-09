@@ -161,7 +161,11 @@ function createHeader() {
 function createFooter() {
   return `
     <footer class="footer">
-      Jupiter-powered risk and settlement for Solana agent payments. Independent community-built tool.
+      <span>Jupiter-powered risk and settlement for Solana agent payments.</span>
+      <a class="maker-link" href="https://x.com/jerrydev90" target="_blank" rel="noreferrer" aria-label="Built by Jerry on X">
+        <span aria-hidden="true">𝕏</span>
+        <b>Jerry</b>
+      </a>
     </footer>
   `;
 }
