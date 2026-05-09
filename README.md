@@ -152,6 +152,12 @@ Local npm wrapper prototype:
 npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
 ```
 
+Alpha wrapper smoke test:
+
+```bash
+npm run alpha:smoke
+```
+
 JSON output for agents or scripts:
 
 ```bash

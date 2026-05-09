@@ -29,6 +29,15 @@ npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
 It calls the Rust CLI from the current repository. It is a development bridge,
 not a published package.
 
+The wrapper has a smoke test:
+
+```bash
+npm run alpha:smoke
+```
+
+It verifies `policy show`, `pay`, `intent list`, and `intent export` through
+the npm wrapper.
+
 ## Target Developer Experience
 
 Primary target:
@@ -120,6 +129,7 @@ Before publishing to npm, the CLI should have:
   - `jup-sh pay ...`
   - `jup-sh intent list`
   - `jup-sh intent export ...`
+  - `npm run alpha:smoke`
 
 ## Current Non-Goals
 
