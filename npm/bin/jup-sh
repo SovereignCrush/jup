@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+const { spawnSync } = require("node:child_process");
+const { existsSync } = require("node:fs");
+const { resolve } = require("node:path");
+
+const packageRoot = resolve(__dirname, "..");
+const repoRoot = resolve(packageRoot, "..");
+const rustDir = resolve(repoRoot, "rust");
+
+if (!existsSync(resolve(rustDir, "Cargo.toml"))) {
+  console.error("jup-sh alpha wrapper could not find the Rust workspace.");
+  console.error("This development wrapper must be run from the jup-sh repository.");
+  process.exit(1);
+}
+
+const result = spawnSync("cargo", ["run", "--quiet", "--", ...process.argv.slice(2)], {
+  cwd: rustDir,
+  stdio: "inherit",
+});
+
+if (result.error) {
+  console.error(`jup-sh failed to start: ${result.error.message}`);
+  process.exit(1);
+}
+
+process.exit(result.status ?? 1);

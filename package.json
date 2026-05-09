@@ -6,6 +6,7 @@
     "dev": "node server.js",
     "check": "node --check app.js && node --check server.js && cd rust && cargo check",
     "cli": "cd rust && cargo run --",
+    "cli:alpha": "node npm/bin/jup-sh",
     "deploy": "rm -rf /tmp/jup-sh-pages && mkdir -p /tmp/jup-sh-pages && cp index.html app.js styles.css favicon.svg _redirects /tmp/jup-sh-pages/ && wrangler pages deploy /tmp/jup-sh-pages --project-name=jup-sh"
   },
   "devDependencies": {

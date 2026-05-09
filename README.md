@@ -146,6 +146,12 @@ Target published command:
 npx jup-sh pay --agent claude --token SOL --settle 20 USDC
 ```
 
+Local npm wrapper prototype:
+
+```bash
+npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
+```
+
 JSON output for agents or scripts:
 
 ```bash

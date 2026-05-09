@@ -20,6 +20,15 @@ jup-sh
 The repository is not published as an npm package yet. The root `package.json`
 is intentionally private while the CLI is still changing quickly.
 
+There is now a local npm wrapper prototype:
+
+```bash
+npm run cli:alpha -- pay --agent claude --token SOL --settle 20 USDC
+```
+
+It calls the Rust CLI from the current repository. It is a development bridge,
+not a published package.
+
 ## Target Developer Experience
 
 Primary target:
@@ -72,6 +81,22 @@ npm/
     jup-sh
 ```
 
+Current local wrapper:
+
+```txt
+npm/package.json
+npm/bin/jup-sh
+```
+
+The current wrapper shells out to:
+
+```bash
+cargo run --quiet --
+```
+
+That is acceptable for Alpha 0 validation, but should be replaced before public
+npm release.
+
 The wrapper can either:
 
 1. download a prebuilt Rust binary for the user's platform, or
@@ -114,6 +139,7 @@ Source-only:
 
 ```bash
 npm run cli -- ...
+npm run cli:alpha -- ...
 ```
 
 This is the current state.

@@ -117,6 +117,7 @@ V1 includes:
 - Docs route remains available but is not shown in the top navigation.
 - Product docs in this repository.
 - CLI release plan for an eventual `npx jup-sh` developer workflow.
+- Local npm wrapper prototype for validating the future CLI package shape.
 - Cloudflare Pages deployment for `jup.sh`.
 - An early Rust CLI prototype.
 - Local payment intent creation.
