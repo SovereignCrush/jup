@@ -1,3 +1,8 @@
+---
+title: Jupiter Quote-Only Design
+description: Quote-only Jupiter settlement estimates for jup.sh payment intents.
+---
+
 # Jupiter Quote-Only Design
 
 This phase moves jup.sh from mock settlement quotes to optional real Jupiter

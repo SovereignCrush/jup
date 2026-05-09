@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title | default: site.title }} | jup.sh</title>
+    <meta name="description" content="{{ page.description | default: site.description }}">
+    <link rel="icon" href="{{ '/favicon.svg' | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/docs.css' | relative_url }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="{{ '/' | relative_url }}">
+        <span class="brand-mark">🌈</span>
+        <span>jup.sh docs</span>
+      </a>
+      <nav class="topnav" aria-label="Main navigation">
+        <a href="{{ '/' | relative_url }}">Docs</a>
+        <a href="https://www.jup.sh">Website</a>
+        <a href="https://github.com/jerrywang33/jup-sh">GitHub</a>
+      </nav>
+    </header>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Documentation navigation">
+        <div class="nav-section">
+          <p>Start</p>
+          <a href="{{ '/' | relative_url }}">Overview</a>
+          <a href="{{ '/quickstart/' | relative_url }}">Quickstart</a>
+        </div>
+        <div class="nav-section">
+          <p>Contracts</p>
+          <a href="{{ '/cli-json-contract/' | relative_url }}">CLI JSON Contract</a>
+          <a href="{{ '/risk-review-export-design/' | relative_url }}">Risk Review Export</a>
+          <a href="{{ '/jupiter-quote-design/' | relative_url }}">Jupiter Quote Design</a>
+        </div>
+        <div class="nav-section">
+          <p>Release</p>
+          <a href="{{ '/releases/0.1.0-alpha.0/' | relative_url }}">0.1.0-alpha.0</a>
+          <a href="{{ '/cli-release-plan/' | relative_url }}">CLI Release Plan</a>
+        </div>
+        <div class="nav-section">
+          <p>Reference</p>
+          <a href="{{ '/product/' | relative_url }}">Product Document</a>
+          <a href="{{ '/cli-technical-design/' | relative_url }}">CLI Technical Design</a>
+          <a href="{{ '/npm-alpha-release-checklist/' | relative_url }}">npm Alpha Checklist</a>
+        </div>
+      </aside>
+      <main class="content">
+        {{ content }}
+      </main>
+    </div>
+  </body>
+</html>

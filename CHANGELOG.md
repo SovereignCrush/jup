@@ -50,6 +50,7 @@ All notable changes to jup.sh will be documented in this file.
 - Added npm alpha package dry-run tooling and release checklist.
 - Added draft GitHub release notes for `0.1.0-alpha.0`.
 - Added a `release:check` gate for the alpha release checks.
+- Added GitHub Pages developer documentation under `docs/`.
 - Added release-readiness documentation:
   - `docs/cli-release-plan.md`
   - `docs/jupiter-quote-design.md`

@@ -1,3 +1,8 @@
+---
+title: Product Document
+description: Product positioning and phase direction for jup.sh.
+---
+
 # jup.sh Product Document
 
 ## 1. V1 Snapshot

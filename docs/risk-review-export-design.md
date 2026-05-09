@@ -1,3 +1,8 @@
+---
+title: Risk Review Export Design
+description: How local payment intents are exported to hosted Risk Review pages.
+---
+
 # Risk Review Export Design
 
 This phase connects the local CLI intent store to the static Risk Review page

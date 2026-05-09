@@ -1,3 +1,8 @@
+---
+title: npm Alpha Release Checklist
+description: Release checklist for npm alpha package preparation.
+---
+
 # npm Alpha Release Checklist
 
 This checklist keeps the first npm release path boring and explicit.

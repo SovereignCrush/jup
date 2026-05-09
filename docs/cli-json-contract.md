@@ -1,3 +1,8 @@
+---
+title: CLI JSON Contract
+description: Agent-facing JSON output and exit code contract for jup-sh pay.
+---
+
 # CLI JSON Contract
 
 This document defines the current agent-facing JSON contract for:

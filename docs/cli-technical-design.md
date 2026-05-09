@@ -1,3 +1,8 @@
+---
+title: CLI Technical Design
+description: Technical design for the jup.sh source-run CLI alpha.
+---
+
 # jup.sh CLI Technical Design
 
 Phase 1 turns the product narrative into a local command that agents and humans

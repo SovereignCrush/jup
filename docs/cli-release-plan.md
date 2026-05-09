@@ -1,3 +1,8 @@
+---
+title: CLI Release Plan
+description: Release path from source-run Rust CLI to public npm distribution.
+---
+
 # CLI Release Plan
 
 This document describes how the current local Rust CLI should become a public
