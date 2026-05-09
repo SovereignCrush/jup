@@ -149,6 +149,7 @@ function createHeader() {
         </span>
       </a>
       <nav class="nav">
+        <a href="https://jerrywang33.github.io/jup-sh/" target="_blank" rel="noreferrer">Docs</a>
         <a href="https://github.com/jerrywang33/jup-sh" target="_blank" rel="noreferrer">GitHub</a>
       </nav>
     </header>
