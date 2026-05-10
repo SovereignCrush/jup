@@ -15,8 +15,8 @@ Policy decides when humans step in.
 
 ## Status
 
-This repository currently contains a static V1 product prototype and an early
-local Rust CLI prototype.
+This repository currently contains a static V1 product prototype, an early
+local Rust CLI prototype, and a source-only TypeScript SDK prototype.
 
 It is not a production payment system and does not execute real payments yet.
 
@@ -44,6 +44,17 @@ policy init/show
 -> local intent store
 -> Risk Review URL export
 -> hosted Risk Review page
+```
+
+The SDK path mirrors the same risk layer:
+
+```txt
+create intent
+-> policy profile
+-> trusted recipient check
+-> Jupiter quote estimate
+-> policy explanation
+-> Risk Review URL when needed
 ```
 
 It is intentionally quote-only and review-only. It does not sign transactions,
@@ -128,6 +139,9 @@ V1 includes:
 - A command-first agent payment concept.
 - A Risk Review prototype.
 - A minimal TypeScript SDK prototype in `sdk/`.
+- SDK policy profiles for `sandbox`, `balanced`, and `strict` risk posture.
+- SDK trusted-recipient helper for known API/vendor destinations.
+- SDK policy decision explanations for agent logs and Risk Review.
 - A static product shell for the current positioning.
 - Changelog in `CHANGELOG.md`.
 - Product notes in `docs/product.md`.
@@ -137,6 +151,7 @@ V1 includes:
 - CLI JSON contract in `docs/cli-json-contract.md`.
 - npm alpha release checklist in `docs/npm-alpha-release-checklist.md`.
 - Draft alpha release notes in `docs/releases/0.1.0-alpha.0.md`.
+- Draft alpha.1 release notes in `docs/releases/0.1.0-alpha.1.md`.
 - GitHub Pages developer docs in `docs/`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
 - Risk Review export design in `docs/risk-review-export-design.md`.

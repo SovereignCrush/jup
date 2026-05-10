@@ -2,6 +2,36 @@
 
 All notable changes to jup.sh will be documented in this file.
 
+## 0.1.0-alpha.1 - Unreleased
+
+### Added
+
+- Added a source-only TypeScript SDK prototype with:
+  - `createPaymentIntent`
+  - `createJupiterQuoteProvider`
+  - `createRiskReviewUrl`
+  - `encodeRiskReviewPayload`
+  - `parseRiskReviewPayload`
+- Added SDK policy profiles:
+  - `sandbox`
+  - `balanced`
+  - `strict`
+- Added SDK `withTrustedRecipients` helper for known API/vendor destinations.
+- Added SDK `explainPolicyDecision` helper for policy decision summaries,
+  risk factors, passed checks, and recommended actions.
+- Updated the hosted Risk Review page to present policy explanations before
+  raw policy check evidence.
+
+### Not Included
+
+- No wallet signing.
+- No swap execution.
+- No Solana Pay transaction request generation.
+- No custody of funds.
+- No remote backend persistence.
+- No authentication.
+- No published npm package yet.
+
 ## 0.1.0-alpha.0 - 2026-05-09
 
 ### Added
@@ -56,21 +86,6 @@ All notable changes to jup.sh will be documented in this file.
   - `docs/jupiter-quote-design.md`
   - `docs/risk-review-export-design.md`
   - `docs/cli-technical-design.md`
-- Added a source-only TypeScript SDK prototype with:
-  - `createPaymentIntent`
-  - `createJupiterQuoteProvider`
-  - `createRiskReviewUrl`
-  - `encodeRiskReviewPayload`
-  - `parseRiskReviewPayload`
-- Added SDK policy profiles:
-  - `sandbox`
-  - `balanced`
-  - `strict`
-- Added SDK `withTrustedRecipients` helper for known API/vendor destinations.
-- Added SDK `explainPolicyDecision` helper for policy decision summaries,
-  risk factors, passed checks, and recommended actions.
-- Updated the hosted Risk Review page to present policy explanations before
-  raw policy check evidence.
 
 ### Not Included
 

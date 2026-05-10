@@ -41,10 +41,18 @@ Recommended order:
 4. [Jupiter Quote-Only Design](jupiter-quote-design.md) - token-to-USDC quote boundary.
 5. [Risk Review Export Design](risk-review-export-design.md) - static review URL model.
 6. [SDK Technical Design](sdk-technical-design.md) - first TypeScript SDK surface.
+7. [0.1.0-alpha.1 Draft](releases/0.1.0-alpha.1.md) - SDK risk-layer checkpoint.
 
 ## Current Alpha
 
-The first milestone is `v0.1.0-alpha.0`.
+The current checkpoint is the planned `v0.1.0-alpha.1`.
+
+The first milestone, `v0.1.0-alpha.0`, established the source-run CLI, JSON
+contract, local policy checks, Jupiter quote-only estimates, local intent
+storage, and static Risk Review export.
+
+The alpha.1 checkpoint focuses on the SDK risk layer and Risk Review
+explainability.
 
 It includes:
 
@@ -60,6 +68,7 @@ It includes:
 - SDK policy profiles for sandbox, balanced, and strict risk posture;
 - SDK trusted-recipient helper for known API/vendor destinations;
 - SDK policy decision explanations for Risk Review and agent logs;
+- hosted Risk Review page policy explanations before raw policy evidence;
 - an agent-facing JSON contract;
 - release checks for the alpha package shape.
 
