@@ -62,6 +62,10 @@ All notable changes to jup.sh will be documented in this file.
   - `createRiskReviewUrl`
   - `encodeRiskReviewPayload`
   - `parseRiskReviewPayload`
+- Added SDK policy profiles:
+  - `sandbox`
+  - `balanced`
+  - `strict`
 
 ### Not Included
 

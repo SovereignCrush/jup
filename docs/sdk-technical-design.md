@@ -42,7 +42,7 @@ flowchart LR
   App["agent app / Node script"]
   SDK["jup.sh TypeScript SDK"]
   Policy["local policy"]
-  Quote["mock quote provider<br/>Jupiter later"]
+  Quote["quote provider<br/>mock or Jupiter"]
   Intent["PaymentIntent"]
   Review["Risk Review URL<br/>fragment payload"]
 
@@ -91,6 +91,49 @@ type CreatePaymentIntentOptions = {
 
 The default quote provider is a mock provider. Jupiter-backed quotes should be
 available behind the same `SettlementQuoter` boundary.
+
+### Policy Profiles
+
+```ts
+getPolicyProfile(name): Policy
+POLICY_PROFILES
+sandboxPolicy
+balancedPolicy
+strictPolicy
+```
+
+The SDK includes three local policy profiles:
+
+| Profile | Use case | Behavior |
+| --- | --- | --- |
+| `sandbox` | Local demos and tests | Larger auto-pay window, unknown recipients do not require review. |
+| `balanced` | Default alpha behavior | Small auto-pay limit, unknown recipients and larger amounts require review. |
+| `strict` | More conservative integrations | Lower limits and tighter quote price-impact checks. |
+
+Example:
+
+```ts
+import {
+  createPaymentIntent,
+  getPolicyProfile,
+} from "./sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    policy: getPolicyProfile("strict"),
+  }
+);
+```
+
+`DEFAULT_POLICY` is the `balanced` profile. This keeps existing behavior
+conservative while giving developers a clearer product-level entry point than
+hand-writing every policy field.
 
 ### createJupiterQuoteProvider
 
@@ -243,6 +286,7 @@ The first SDK implementation should include:
 
 - TypeScript types;
 - default policy;
+- named policy profiles;
 - local deterministic policy checks;
 - mock settlement quote;
 - Jupiter quote-only provider;

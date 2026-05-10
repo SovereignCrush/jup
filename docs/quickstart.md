@@ -301,6 +301,35 @@ if (intent.nextAction === "open_review") {
 This uses the same `#intent=<base64url-json-payload>` model as CLI
 `intent export`, so the URL opens directly in the hosted Risk Review page.
 
+Try SDK policy profiles:
+
+```ts
+import {
+  createPaymentIntent,
+  getPolicyProfile,
+} from "../sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    policy: getPolicyProfile("sandbox"),
+  }
+);
+```
+
+Available profiles:
+
+| Profile | Intended use |
+| --- | --- |
+| `sandbox` | Local demos and tests with fewer review interruptions. |
+| `balanced` | Default alpha behavior. |
+| `strict` | Conservative integrations with tighter limits. |
+
 ## 8. Run The Release Gate
 
 Before a release checkpoint:

@@ -3,6 +3,7 @@ export type Decision = "auto_pay" | "review_required" | "rejected";
 export type IntentStatus = "ready_for_authorization" | "review_required" | "rejected";
 export type NextAction = "ready_for_authorization" | "open_review" | "rejected";
 export type RiskLevel = "low" | "medium" | "high";
+export type PolicyProfileName = "sandbox" | "balanced" | "strict";
 
 export type Policy = {
   maxAutoSettleUSDC: number;
@@ -113,15 +114,60 @@ export type RiskReviewUrlOptions = {
   reviewBaseUrl?: string;
 };
 
-export const DEFAULT_POLICY: Policy = {
-  maxAutoSettleUSDC: 5,
-  maxAllowedSettleUSDC: 100,
-  maxPriceImpactBps: 100,
-  reviewHighPriceImpact: true,
-  verifiedTokens: ["USDC", "SOL", "JUP", "BONK"],
-  trustedRecipients: [],
-  reviewUnknownRecipients: true,
+const VERIFIED_TOKENS = ["USDC", "SOL", "JUP", "BONK"];
+
+export const POLICY_PROFILES: Record<PolicyProfileName, Policy> = {
+  sandbox: {
+    maxAutoSettleUSDC: 25,
+    maxAllowedSettleUSDC: 250,
+    maxPriceImpactBps: 250,
+    reviewHighPriceImpact: false,
+    verifiedTokens: [...VERIFIED_TOKENS],
+    trustedRecipients: [],
+    reviewUnknownRecipients: false,
+  },
+  balanced: {
+    maxAutoSettleUSDC: 5,
+    maxAllowedSettleUSDC: 100,
+    maxPriceImpactBps: 100,
+    reviewHighPriceImpact: true,
+    verifiedTokens: [...VERIFIED_TOKENS],
+    trustedRecipients: [],
+    reviewUnknownRecipients: true,
+  },
+  strict: {
+    maxAutoSettleUSDC: 1,
+    maxAllowedSettleUSDC: 25,
+    maxPriceImpactBps: 50,
+    reviewHighPriceImpact: true,
+    verifiedTokens: [...VERIFIED_TOKENS],
+    trustedRecipients: [],
+    reviewUnknownRecipients: true,
+  },
 };
+
+export const DEFAULT_POLICY: Policy = {
+  ...POLICY_PROFILES.balanced,
+  verifiedTokens: [...POLICY_PROFILES.balanced.verifiedTokens],
+  trustedRecipients: [...POLICY_PROFILES.balanced.trustedRecipients],
+};
+
+export function getPolicyProfile(name: PolicyProfileName): Policy {
+  const policy = POLICY_PROFILES[name];
+  return {
+    ...policy,
+    verifiedTokens: [...policy.verifiedTokens],
+    trustedRecipients: [...policy.trustedRecipients],
+  };
+}
+
+export const SANDBOX_POLICY: Policy = getPolicyProfile("sandbox");
+export const BALANCED_POLICY: Policy = getPolicyProfile("balanced");
+export const STRICT_POLICY: Policy = getPolicyProfile("strict");
+
+export const sandboxPolicy = SANDBOX_POLICY;
+export const balancedPolicy = BALANCED_POLICY;
+export const strictPolicy = STRICT_POLICY;
 
 const MOCK_PRICES_USDC: Record<string, number> = {
   USDC: 1,
@@ -404,8 +450,8 @@ function normalizePolicy(policy?: Partial<Policy>): Policy {
   return {
     ...DEFAULT_POLICY,
     ...policy,
-    verifiedTokens: policy?.verifiedTokens ?? DEFAULT_POLICY.verifiedTokens,
-    trustedRecipients: policy?.trustedRecipients ?? DEFAULT_POLICY.trustedRecipients,
+    verifiedTokens: [...(policy?.verifiedTokens ?? DEFAULT_POLICY.verifiedTokens)],
+    trustedRecipients: [...(policy?.trustedRecipients ?? DEFAULT_POLICY.trustedRecipients)],
   };
 }
 

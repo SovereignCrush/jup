@@ -49,6 +49,21 @@ try {
     throw new Error(`unexpected review URL: ${review.reviewUrl}`);
   }
 
+  const profilesStdout = run("node", [join(outDir, "examples/node-agent-policy-profiles.js")]);
+  const profiles = JSON.parse(profilesStdout);
+  const decisions = Object.fromEntries(
+    profiles.map((item) => [item.profile, `${item.decision}:${item.nextAction}`])
+  );
+  if (decisions.sandbox !== "auto_pay:ready_for_authorization") {
+    throw new Error(`unexpected sandbox policy decision: ${decisions.sandbox}`);
+  }
+  if (decisions.balanced !== "review_required:open_review") {
+    throw new Error(`unexpected balanced policy decision: ${decisions.balanced}`);
+  }
+  if (decisions.strict !== "review_required:open_review") {
+    throw new Error(`unexpected strict policy decision: ${decisions.strict}`);
+  }
+
   const jupiterCheck = run("node", [
     "--input-type=module",
     "--eval",

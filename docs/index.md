@@ -57,6 +57,7 @@ It includes:
 - hosted static Risk Review rendering;
 - source-only TypeScript SDK helpers for payment intents, Jupiter quote-only
   estimates, and Risk Review URL export;
+- SDK policy profiles for sandbox, balanced, and strict risk posture;
 - an agent-facing JSON contract;
 - release checks for the alpha package shape.
 

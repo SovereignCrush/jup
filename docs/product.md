@@ -150,6 +150,17 @@ Policy returns one of three outcomes:
 This is the moat direction: the richer the policy and risk layer becomes, the
 more valuable `jup.sh` is as infrastructure rather than a thin UI.
 
+Policy profiles turn that risk layer into a product surface:
+
+| Profile | Role |
+| --- | --- |
+| `sandbox` | Developer testing and demos with fewer review interruptions. |
+| `balanced` | Default alpha posture: conservative enough for review-first flows. |
+| `strict` | More conservative integrations with lower limits and tighter route checks. |
+
+The profile names matter because developers should not need to understand every
+policy field before they can try the product.
+
 ## Risk Review Role
 
 Risk Review is not the primary product. It is the fallback for flagged intents.

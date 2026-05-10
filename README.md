@@ -225,6 +225,27 @@ const reviewUrl = createRiskReviewUrl(intent, {
 
 This uses the same base64url fragment payload as `jup-sh intent export`.
 
+SDK policy profiles:
+
+```ts
+import { createPaymentIntent, getPolicyProfile } from "./sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    policy: getPolicyProfile("sandbox"),
+  }
+);
+```
+
+Available profiles are `sandbox`, `balanced`, and `strict`. `balanced` matches
+the default alpha policy.
+
 Alpha wrapper smoke test:
 
 ```bash
