@@ -358,6 +358,37 @@ const intent = await createPaymentIntent(
 This keeps small known-recipient payments inside policy while still sending
 unknown recipients to Risk Review.
 
+Explain a policy decision:
+
+```ts
+import {
+  createPaymentIntent,
+  explainPolicyDecision,
+  getPolicyProfile,
+} from "../sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    policy: getPolicyProfile("balanced"),
+  }
+);
+
+const explanation = explainPolicyDecision(intent);
+
+console.log(explanation.summary);
+console.log(explanation.riskFactors);
+console.log(explanation.recommendedAction);
+```
+
+This is useful for agent logs, Risk Review, and local audit trails. It explains
+the existing `policyChecks`; it does not change the payment decision.
+
 ## 8. Run The Release Gate
 
 Before a release checkpoint:

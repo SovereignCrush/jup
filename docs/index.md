@@ -59,6 +59,7 @@ It includes:
   estimates, and Risk Review URL export;
 - SDK policy profiles for sandbox, balanced, and strict risk posture;
 - SDK trusted-recipient helper for known API/vendor destinations;
+- SDK policy decision explanations for Risk Review and agent logs;
 - an agent-facing JSON contract;
 - release checks for the alpha package shape.
 

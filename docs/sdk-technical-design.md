@@ -171,6 +171,58 @@ For small payments, a trusted recipient can keep the flow inside policy. An
 unknown recipient still triggers Risk Review under the `balanced` and `strict`
 profiles.
 
+### Policy Explainability
+
+```ts
+explainPolicyDecision(intent): PolicyDecisionExplanation
+```
+
+The SDK can turn raw policy checks into a compact explanation object:
+
+```ts
+import {
+  createPaymentIntent,
+  explainPolicyDecision,
+  getPolicyProfile,
+} from "./sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    policy: getPolicyProfile("balanced"),
+  }
+);
+
+const explanation = explainPolicyDecision(intent);
+```
+
+Output shape:
+
+```ts
+type PolicyDecisionExplanation = {
+  summary: string;
+  riskFactors: string[];
+  passedChecks: string[];
+  rejectedChecks: string[];
+  recommendedAction: string;
+  reviewUrl: string | null;
+};
+```
+
+Example summary:
+
+```txt
+Risk Review required because recipient is unknown and amount exceeds the auto-pay limit.
+```
+
+The helper does not re-run policy or change the decision. It only makes the
+existing `policyChecks` easier to show in logs, agent responses, or Risk Review.
+
 ### createJupiterQuoteProvider
 
 ```ts
@@ -324,6 +376,7 @@ The first SDK implementation should include:
 - default policy;
 - named policy profiles;
 - local deterministic policy checks;
+- policy decision explanations;
 - mock settlement quote;
 - Jupiter quote-only provider;
 - Risk Review URL export helpers;

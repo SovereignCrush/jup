@@ -79,6 +79,15 @@ export type PaymentIntent = {
   createdAt: string;
 };
 
+export type PolicyDecisionExplanation = {
+  summary: string;
+  riskFactors: string[];
+  passedChecks: string[];
+  rejectedChecks: string[];
+  recommendedAction: string;
+  reviewUrl: string | null;
+};
+
 export type SettlementQuoter = {
   quoteSettlement(input: NormalizedPaymentIntentInput): Promise<SettlementQuote> | SettlementQuote;
 };
@@ -267,6 +276,23 @@ export function parseRiskReviewPayload(payload: string): PaymentIntent {
   const value = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as unknown;
   assertPaymentIntent(value);
   return value;
+}
+
+export function explainPolicyDecision(intent: PaymentIntent): PolicyDecisionExplanation {
+  const reviewChecks = intent.policyChecks.filter((check) => check.status === "review");
+  const rejectedChecks = intent.policyChecks.filter((check) => check.status === "reject");
+  const passedChecks = intent.policyChecks.filter((check) => check.status === "pass");
+  const blockingChecks = [...rejectedChecks, ...reviewChecks];
+  const riskFactors = blockingChecks.map((check) => explainCheck(check));
+
+  return {
+    summary: buildDecisionSummary(intent, riskFactors),
+    riskFactors,
+    passedChecks: passedChecks.map((check) => explainCheck(check)),
+    rejectedChecks: rejectedChecks.map((check) => explainCheck(check)),
+    recommendedAction: recommendedActionForIntent(intent),
+    reviewUrl: intent.nextAction === "open_review" ? intent.reviewUrl : null,
+  };
 }
 
 export function evaluatePolicy(input: NormalizedPaymentIntentInput, policy: Policy): PolicyResult {
@@ -506,6 +532,77 @@ function intentStatusForDecision(decision: Decision): IntentStatus {
 function policyCheck(name: string, status: PolicyCheckStatus, message: string): PolicyCheck {
   return { name, status, message };
 }
+
+function buildDecisionSummary(intent: PaymentIntent, riskFactors: string[]): string {
+  if (intent.decision === "auto_pay") {
+    return "Payment intent is inside policy and ready for local authorization.";
+  }
+
+  if (intent.decision === "rejected") {
+    return `Payment intent is rejected${summaryReasonSuffix(riskFactors)}.`;
+  }
+
+  return `Risk Review required${summaryReasonSuffix(riskFactors)}.`;
+}
+
+function summaryReasonSuffix(riskFactors: string[]): string {
+  if (riskFactors.length === 0) return "";
+  if (riskFactors.length === 1) return ` because ${riskFactors[0].toLowerCase()}`;
+
+  const head = riskFactors.slice(0, -1).map((factor) => factor.toLowerCase());
+  const tail = riskFactors[riskFactors.length - 1].toLowerCase();
+  return ` because ${head.join(", ")} and ${tail}`;
+}
+
+function recommendedActionForIntent(intent: PaymentIntent): string {
+  if (intent.decision === "auto_pay") {
+    return "Continue to local authorization when a signing flow is available.";
+  }
+  if (intent.decision === "rejected") {
+    return "Stop the payment flow and adjust the intent or policy before retrying.";
+  }
+
+  return "Open Risk Review before local authorization.";
+}
+
+function explainCheck(check: PolicyCheck): string {
+  const known = CHECK_EXPLANATIONS[check.name]?.[check.status];
+  return known ?? check.message;
+}
+
+const CHECK_EXPLANATIONS: Record<string, Partial<Record<PolicyCheckStatus, string>>> = {
+  verified_token: {
+    pass: "Token is verified",
+    reject: "Token is not verified",
+  },
+  settlement_token: {
+    pass: "USDC settlement is supported",
+    reject: "Settlement token is not supported",
+  },
+  max_allowed_amount: {
+    pass: "Amount is below the hard limit",
+    reject: "Amount exceeds the hard limit",
+  },
+  recipient_trust: {
+    pass: "Recipient is trusted or allowed by policy",
+    review: "Recipient is unknown",
+  },
+  auto_pay_limit: {
+    pass: "Amount is inside the auto-pay limit",
+    review: "Amount exceeds the auto-pay limit",
+  },
+  quote_available: {
+    pass: "Jupiter quote is available",
+  },
+  quote_settlement_token: {
+    pass: "Quote settles to USDC",
+    reject: "Quote does not settle to USDC",
+  },
+  quote_price_impact: {
+    pass: "Price impact is acceptable",
+    review: "Price impact requires review",
+  },
+};
 
 function normalizeToken(token: string): string {
   return requiredString(token, "token").toUpperCase();

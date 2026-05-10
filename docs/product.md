@@ -165,6 +165,11 @@ Trusted recipients are the next simple risk primitive. They let a policy say:
 this vendor/API is known, so a small payment can stay on the automatic path;
 unknown recipients still go to Risk Review.
 
+Explainability is part of the same risk layer. A decision should not only say
+`review_required`; it should explain which checks passed, which factors caused
+review, and what the caller should do next. This matters for agent logs, human
+review, and future audit trails.
+
 ## Risk Review Role
 
 Risk Review is not the primary product. It is the fallback for flagged intents.

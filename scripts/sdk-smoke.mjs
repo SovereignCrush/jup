@@ -76,6 +76,27 @@ try {
     throw new Error("trusted recipient did not pass recipient_trust policy check");
   }
 
+  const explainStdout = run("node", [join(outDir, "examples/node-agent-explain-policy.js")]);
+  const explanations = JSON.parse(explainStdout);
+  if (!explanations.review.summary.includes("Risk Review required")) {
+    throw new Error(`unexpected review explanation: ${explanations.review.summary}`);
+  }
+  if (!explanations.review.riskFactors.includes("Recipient is unknown")) {
+    throw new Error("review explanation missing unknown recipient factor");
+  }
+  if (!explanations.review.riskFactors.includes("Amount exceeds the auto-pay limit")) {
+    throw new Error("review explanation missing auto-pay limit factor");
+  }
+  if (explanations.review.recommendedAction !== "Open Risk Review before local authorization.") {
+    throw new Error(`unexpected review action: ${explanations.review.recommendedAction}`);
+  }
+  if (explanations.autoPay.summary !== "Payment intent is inside policy and ready for local authorization.") {
+    throw new Error(`unexpected auto-pay explanation: ${explanations.autoPay.summary}`);
+  }
+  if (explanations.autoPay.riskFactors.length !== 0) {
+    throw new Error("auto-pay explanation should not have risk factors");
+  }
+
   const jupiterCheck = run("node", [
     "--input-type=module",
     "--eval",

@@ -271,6 +271,31 @@ const intent = await createPaymentIntent(
 );
 ```
 
+Policy decision explanation:
+
+```ts
+import {
+  createPaymentIntent,
+  explainPolicyDecision,
+  getPolicyProfile,
+} from "./sdk/index.js";
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 20,
+    settle: "USDC",
+  },
+  {
+    policy: getPolicyProfile("balanced"),
+  }
+);
+
+const explanation = explainPolicyDecision(intent);
+console.log(explanation.summary);
+```
+
 Alpha wrapper smoke test:
 
 ```bash
