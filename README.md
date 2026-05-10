@@ -151,7 +151,7 @@ V1 includes:
 - CLI JSON contract in `docs/cli-json-contract.md`.
 - npm alpha release checklist in `docs/npm-alpha-release-checklist.md`.
 - Draft alpha release notes in `docs/releases/0.1.0-alpha.0.md`.
-- Draft alpha.1 release notes in `docs/releases/0.1.0-alpha.1.md`.
+- Alpha.1 release notes in `docs/releases/0.1.0-alpha.1.md`.
 - GitHub Pages developer docs in `docs/`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
 - Risk Review export design in `docs/risk-review-export-design.md`.
