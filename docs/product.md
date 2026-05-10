@@ -154,12 +154,16 @@ Policy profiles turn that risk layer into a product surface:
 
 | Profile | Role |
 | --- | --- |
-| `sandbox` | Developer testing and demos with fewer review interruptions. |
-| `balanced` | Default alpha posture: conservative enough for review-first flows. |
-| `strict` | More conservative integrations with lower limits and tighter route checks. |
+| `sandbox` | Agent demos, hackathons, and local testing with fewer review interruptions. |
+| `balanced` | Known agents paying known APIs. This is the default alpha posture. |
+| `strict` | New agents, unknown recipients, or higher-risk environments. |
 
 The profile names matter because developers should not need to understand every
 policy field before they can try the product.
+
+Trusted recipients are the next simple risk primitive. They let a policy say:
+this vendor/API is known, so a small payment can stay on the automatic path;
+unknown recipients still go to Risk Review.
 
 ## Risk Review Role
 

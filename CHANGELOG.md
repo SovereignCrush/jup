@@ -66,6 +66,7 @@ All notable changes to jup.sh will be documented in this file.
   - `sandbox`
   - `balanced`
   - `strict`
+- Added SDK `withTrustedRecipients` helper for known API/vendor destinations.
 
 ### Not Included
 

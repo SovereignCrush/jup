@@ -64,6 +64,18 @@ try {
     throw new Error(`unexpected strict policy decision: ${decisions.strict}`);
   }
 
+  const trustedStdout = run("node", [join(outDir, "examples/node-agent-trusted-recipient.js")]);
+  const trusted = JSON.parse(trustedStdout);
+  if (trusted.decision !== "auto_pay") {
+    throw new Error(`unexpected trusted recipient decision: ${trusted.decision}`);
+  }
+  if (trusted.nextAction !== "ready_for_authorization") {
+    throw new Error(`unexpected trusted recipient nextAction: ${trusted.nextAction}`);
+  }
+  if (!trusted.policyChecks.some((check) => check.name === "recipient_trust" && check.status === "pass")) {
+    throw new Error("trusted recipient did not pass recipient_trust policy check");
+  }
+
   const jupiterCheck = run("node", [
     "--input-type=module",
     "--eval",

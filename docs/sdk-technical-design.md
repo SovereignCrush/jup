@@ -106,9 +106,9 @@ The SDK includes three local policy profiles:
 
 | Profile | Use case | Behavior |
 | --- | --- | --- |
-| `sandbox` | Local demos and tests | Larger auto-pay window, unknown recipients do not require review. |
-| `balanced` | Default alpha behavior | Small auto-pay limit, unknown recipients and larger amounts require review. |
-| `strict` | More conservative integrations | Lower limits and tighter quote price-impact checks. |
+| `sandbox` | Agent demos, hackathons, and local testing | Larger auto-pay window, unknown recipients do not require review. |
+| `balanced` | Known agents paying known APIs | Small auto-pay limit, unknown recipients and larger amounts require review. |
+| `strict` | New agents, unknown recipients, or higher-risk environments | Lower limits and tighter quote price-impact checks. |
 
 Example:
 
@@ -134,6 +134,42 @@ const intent = await createPaymentIntent(
 `DEFAULT_POLICY` is the `balanced` profile. This keeps existing behavior
 conservative while giving developers a clearer product-level entry point than
 hand-writing every policy field.
+
+### Trusted Recipients
+
+```ts
+withTrustedRecipients(policy, recipients): Policy
+```
+
+Trusted recipients let a local policy distinguish a known API/vendor from an
+unknown destination:
+
+```ts
+import {
+  createPaymentIntent,
+  getPolicyProfile,
+  withTrustedRecipients,
+} from "./sdk/index.js";
+
+const policy = withTrustedRecipients(getPolicyProfile("balanced"), [
+  "api.vendor.example",
+]);
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 2,
+    settle: "USDC",
+    recipient: "api.vendor.example",
+  },
+  { policy }
+);
+```
+
+For small payments, a trusted recipient can keep the flow inside policy. An
+unknown recipient still triggers Risk Review under the `balanced` and `strict`
+profiles.
 
 ### createJupiterQuoteProvider
 

@@ -58,6 +58,7 @@ It includes:
 - source-only TypeScript SDK helpers for payment intents, Jupiter quote-only
   estimates, and Risk Review URL export;
 - SDK policy profiles for sandbox, balanced, and strict risk posture;
+- SDK trusted-recipient helper for known API/vendor destinations;
 - an agent-facing JSON contract;
 - release checks for the alpha package shape.
 

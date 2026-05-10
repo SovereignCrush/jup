@@ -169,6 +169,14 @@ export const sandboxPolicy = SANDBOX_POLICY;
 export const balancedPolicy = BALANCED_POLICY;
 export const strictPolicy = STRICT_POLICY;
 
+export function withTrustedRecipients(policy: Policy, recipients: string[]): Policy {
+  return {
+    ...policy,
+    verifiedTokens: [...policy.verifiedTokens],
+    trustedRecipients: uniqueStrings([...policy.trustedRecipients, ...recipients]),
+  };
+}
+
 const MOCK_PRICES_USDC: Record<string, number> = {
   USDC: 1,
   SOL: 150,
@@ -507,6 +515,10 @@ function requiredString(value: string, field: string): string {
   const trimmed = value.trim();
   if (!trimmed) throw new Error(`${field} is required`);
   return trimmed;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
 function positiveAmount(value: number, field: string): number {

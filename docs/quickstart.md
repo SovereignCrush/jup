@@ -326,9 +326,37 @@ Available profiles:
 
 | Profile | Intended use |
 | --- | --- |
-| `sandbox` | Local demos and tests with fewer review interruptions. |
-| `balanced` | Default alpha behavior. |
-| `strict` | Conservative integrations with tighter limits. |
+| `sandbox` | Agent demos, hackathons, and local testing with fewer review interruptions. |
+| `balanced` | Known agents paying known APIs. This is the default alpha behavior. |
+| `strict` | New agents, unknown recipients, or higher-risk environments. |
+
+Add a trusted recipient to a profile:
+
+```ts
+import {
+  createPaymentIntent,
+  getPolicyProfile,
+  withTrustedRecipients,
+} from "../sdk/index.js";
+
+const policy = withTrustedRecipients(getPolicyProfile("balanced"), [
+  "api.vendor.example",
+]);
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 2,
+    settle: "USDC",
+    recipient: "api.vendor.example",
+  },
+  { policy }
+);
+```
+
+This keeps small known-recipient payments inside policy while still sending
+unknown recipients to Risk Review.
 
 ## 8. Run The Release Gate
 

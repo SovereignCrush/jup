@@ -246,6 +246,31 @@ const intent = await createPaymentIntent(
 Available profiles are `sandbox`, `balanced`, and `strict`. `balanced` matches
 the default alpha policy.
 
+Trusted recipient helper:
+
+```ts
+import {
+  createPaymentIntent,
+  getPolicyProfile,
+  withTrustedRecipients,
+} from "./sdk/index.js";
+
+const policy = withTrustedRecipients(getPolicyProfile("balanced"), [
+  "api.vendor.example",
+]);
+
+const intent = await createPaymentIntent(
+  {
+    agent: "deepseek",
+    token: "SOL",
+    amount: 2,
+    settle: "USDC",
+    recipient: "api.vendor.example",
+  },
+  { policy }
+);
+```
+
 Alpha wrapper smoke test:
 
 ```bash
