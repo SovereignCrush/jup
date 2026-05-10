@@ -69,6 +69,8 @@ All notable changes to jup.sh will be documented in this file.
 - Added SDK `withTrustedRecipients` helper for known API/vendor destinations.
 - Added SDK `explainPolicyDecision` helper for policy decision summaries,
   risk factors, passed checks, and recommended actions.
+- Updated the hosted Risk Review page to present policy explanations before
+  raw policy check evidence.
 
 ### Not Included
 

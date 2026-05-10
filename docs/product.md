@@ -170,6 +170,10 @@ Explainability is part of the same risk layer. A decision should not only say
 review, and what the caller should do next. This matters for agent logs, human
 review, and future audit trails.
 
+The hosted Risk Review page should use the same explanation model. It should
+lead with a short summary, risk factors, recommended action, and passed checks,
+then show the raw policy checks as evidence.
+
 ## Risk Review Role
 
 Risk Review is not the primary product. It is the fallback for flagged intents.

@@ -1256,6 +1256,84 @@ button {
   filter: brightness(0) invert(1);
 }
 
+.explain-panel {
+  margin-top: 16px;
+  border: 1px solid rgba(34, 226, 155, 0.32);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(34, 226, 155, 0.1), rgba(153, 69, 255, 0.08)),
+    rgba(0, 0, 0, 0.18);
+  padding: 14px;
+}
+
+.explain-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.explain-panel h2 {
+  margin: 8px 0 12px;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.32;
+  letter-spacing: 0;
+}
+
+.risk-factor-list,
+.passed-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.risk-factor-list span,
+.passed-checks span {
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.risk-factor-list span {
+  color: #f6d483;
+  background: rgba(246, 212, 131, 0.1);
+}
+
+.passed-checks {
+  margin-top: 10px;
+}
+
+.passed-checks span {
+  color: #7df7c8;
+  background: rgba(34, 226, 155, 0.08);
+}
+
+.recommendation-line {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 13px;
+}
+
+.recommendation-line span {
+  color: var(--muted);
+}
+
+.recommendation-line strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
 .clean-summary {
   margin-top: 16px;
   border: 1px solid var(--line);
@@ -1525,12 +1603,35 @@ button {
 }
 
 .light-route .clean-summary,
+.light-route .explain-panel,
 .light-route .summary-box,
 .light-route .field input,
 .light-route .field select {
   border-color: rgba(10, 18, 24, 0.12);
   background: rgba(255, 255, 255, 0.66);
   color: #11161c;
+}
+
+.light-route .explain-panel h2,
+.light-route .recommendation-line strong {
+  color: #11161c;
+}
+
+.light-route .explain-label,
+.light-route .recommendation-line span {
+  color: #5b6570;
+}
+
+.light-route .risk-factor-list span {
+  border-color: rgba(156, 112, 20, 0.18);
+  color: #8a5b04;
+  background: rgba(246, 212, 131, 0.22);
+}
+
+.light-route .passed-checks span {
+  border-color: rgba(8, 124, 86, 0.18);
+  color: #087c56;
+  background: rgba(34, 226, 155, 0.14);
 }
 
 .light-route .compact-token,
@@ -2477,6 +2578,7 @@ body.light-route {
 }
 
 .light-route .clean-summary,
+.light-route .explain-panel,
 .light-route .summary-box,
 .light-route .field input,
 .light-route .field select,
@@ -2488,6 +2590,16 @@ body.light-route {
   border-color: #242428;
   background: #09090b;
   color: #fafafa;
+}
+
+.light-route .explain-panel h2,
+.light-route .recommendation-line strong {
+  color: #fafafa;
+}
+
+.light-route .explain-label,
+.light-route .recommendation-line span {
+  color: #a1a1aa;
 }
 
 .light-route .code-card,
@@ -2906,6 +3018,19 @@ body.light-route {
 
   .compact-token-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .explain-panel {
+    padding: 12px;
+  }
+
+  .explain-panel h2 {
+    font-size: 15px;
+  }
+
+  .recommendation-line {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .clean-summary div {

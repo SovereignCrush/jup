@@ -77,6 +77,97 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function explainPolicyDecision(intent) {
+  const checks = Array.isArray(intent?.policyChecks) ? intent.policyChecks : [];
+  const reviewChecks = checks.filter((check) => check.status === "review");
+  const rejectedChecks = checks.filter((check) => check.status === "reject");
+  const passedChecks = checks.filter((check) => check.status === "pass");
+  const riskFactors = [...rejectedChecks, ...reviewChecks].map(explainCheck);
+
+  if (!intent) {
+    return {
+      summary: "Risk Review required because this payment was created by an agent.",
+      riskFactors: ["Agent-created payment", "Human confirmation required"],
+      passedChecks: ["USDC settlement preview is available"],
+      recommendedAction: "Review the amount, token, route, and recipient before approval.",
+    };
+  }
+
+  return {
+    summary: buildDecisionSummary(intent, riskFactors),
+    riskFactors,
+    passedChecks: passedChecks.map(explainCheck),
+    recommendedAction: recommendedActionForIntent(intent),
+  };
+}
+
+function buildDecisionSummary(intent, riskFactors) {
+  if (intent.decision === "auto_pay") {
+    return "Payment intent is inside policy and ready for local authorization.";
+  }
+  if (intent.decision === "rejected") {
+    return `Payment intent is rejected${summaryReasonSuffix(riskFactors)}.`;
+  }
+  return `Risk Review required${summaryReasonSuffix(riskFactors)}.`;
+}
+
+function summaryReasonSuffix(riskFactors) {
+  if (!riskFactors.length) return "";
+  if (riskFactors.length === 1) return ` because ${riskFactors[0].toLowerCase()}`;
+  const head = riskFactors.slice(0, -1).map((factor) => factor.toLowerCase());
+  const tail = riskFactors[riskFactors.length - 1].toLowerCase();
+  return ` because ${head.join(", ")} and ${tail}`;
+}
+
+function recommendedActionForIntent(intent) {
+  if (intent.decision === "auto_pay") {
+    return "Continue to local authorization when a signing flow is available.";
+  }
+  if (intent.decision === "rejected") {
+    return "Stop the payment flow and adjust the intent or policy before retrying.";
+  }
+  return "Open Risk Review before local authorization.";
+}
+
+function explainCheck(check) {
+  const known = CHECK_EXPLANATIONS[check.name]?.[check.status];
+  return known || check.message;
+}
+
+const CHECK_EXPLANATIONS = {
+  verified_token: {
+    pass: "Token is verified",
+    reject: "Token is not verified",
+  },
+  settlement_token: {
+    pass: "USDC settlement is supported",
+    reject: "Settlement token is not supported",
+  },
+  max_allowed_amount: {
+    pass: "Amount is below the hard limit",
+    reject: "Amount exceeds the hard limit",
+  },
+  recipient_trust: {
+    pass: "Recipient is trusted or allowed by policy",
+    review: "Recipient is unknown",
+  },
+  auto_pay_limit: {
+    pass: "Amount is inside the auto-pay limit",
+    review: "Amount exceeds the auto-pay limit",
+  },
+  quote_available: {
+    pass: "Jupiter quote is available",
+  },
+  quote_settlement_token: {
+    pass: "Quote settles to USDC",
+    reject: "Quote does not settle to USDC",
+  },
+  quote_price_impact: {
+    pass: "Price impact is acceptable",
+    review: "Price impact requires review",
+  },
+};
+
 function getSelectedToken() {
   return TOKENS.find((token) => token.symbol === state.selectedToken) || TOKENS[1];
 }
@@ -455,6 +546,11 @@ function renderCheckout() {
   const recipient = state.intent?.recipient || state.invoice.wallet;
   const merchant = escapeHtml(state.invoice.merchant);
   const memo = escapeHtml(state.invoice.memo);
+  const explanation = explainPolicyDecision(state.intent);
+  const riskFactors = explanation.riskFactors.length
+    ? explanation.riskFactors
+    : ["No blocking risk factors"];
+  const passedChecks = explanation.passedChecks.slice(0, 4);
   const reviewRows = state.intent?.policyChecks
     ? state.intent.policyChecks
         .map(
@@ -489,6 +585,25 @@ function renderCheckout() {
 
           <div class="simple-amount">${money(state.invoice.amount)} <span>USDC</span></div>
           <div class="simple-copy">Risk Review for an agent-created payment.</div>
+
+          <div class="explain-panel">
+            <div class="explain-label">Policy explanation</div>
+            <h2>${escapeHtml(explanation.summary)}</h2>
+            <div class="risk-factor-list">
+              ${riskFactors.map((factor) => `<span>${escapeHtml(factor)}</span>`).join("")}
+            </div>
+            <div class="recommendation-line">
+              <span>Recommended action</span>
+              <strong>${escapeHtml(explanation.recommendedAction)}</strong>
+            </div>
+            ${
+              passedChecks.length
+                ? `<div class="passed-checks">
+                    ${passedChecks.map((check) => `<span>${escapeHtml(check)}</span>`).join("")}
+                  </div>`
+                : ""
+            }
+          </div>
 
           <div class="compact-token-grid">
             ${TOKENS.map(
