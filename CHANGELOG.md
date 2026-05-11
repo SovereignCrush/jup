@@ -4,6 +4,13 @@ All notable changes to jup.sh will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Added `reviewCommand` to `pay --json` output so agents can hand off to
+  `npx jup-sh@alpha review intent_xxx`.
+- `review_required` `pay --json` output now includes a full Risk Review URL
+  with `#intent=` payload.
+
 ### Changed
 
 - Simplified the homepage CLI prompt to the two-line alpha entry point:

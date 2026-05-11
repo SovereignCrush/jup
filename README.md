@@ -383,6 +383,10 @@ The CLI returns a structured local payment intent with:
 - `nextAction`: `ready_for_authorization`, `open_review`, or `rejected`.
 - `riskLevel`: `low`, `medium`, or `high`.
 - `policyChecks`: deterministic local checks over intent fields and quote risk.
+- `reviewUrl`: full Risk Review URL with `#intent=` payload when review is
+  required.
+- `reviewCommand`: local CLI shortcut, such as
+  `npx jup-sh@alpha review intent_xxx`.
 
 For `pay`, exit codes are part of the agent contract:
 

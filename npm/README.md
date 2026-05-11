@@ -18,7 +18,9 @@ Install or run with `npx`:
 
 ```bash
 npx jup-sh@alpha init
-npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC --json
+npx jup-sh@alpha doctor
+npx jup-sh@alpha policy trust api.vendor.example
+npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json
 ```
 
 The npm alpha is self-contained and runs on Node.js. It does not require the
@@ -28,7 +30,19 @@ Command shape:
 
 ```bash
 jup-sh init
-jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC --json
+jup-sh doctor
+jup-sh pay --agent deepseek --token SOL --amount 6 --settle USDC --json
+```
+
+When policy requires review, `pay --json` includes a full Risk Review URL and
+local handoff command:
+
+```json
+{
+  "nextAction": "open_review",
+  "reviewUrl": "https://www.jup.sh/pay/intent_xxx#intent=...",
+  "reviewCommand": "npx jup-sh@alpha review intent_xxx"
+}
 ```
 
 Useful commands:

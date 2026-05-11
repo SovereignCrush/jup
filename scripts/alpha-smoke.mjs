@@ -124,6 +124,7 @@ function assertPayIntentContract(intent, expected) {
   }
   assertPolicyChecks(intent.policyChecks);
   assertString(intent.reviewUrl, "reviewUrl");
+  assertString(intent.reviewCommand, "reviewCommand");
   assertString(intent.createdAt, "createdAt");
 
   for (const [field, value] of Object.entries(expected)) {
@@ -266,6 +267,12 @@ try {
     "quote_price_impact",
   ]);
   const intentId = intent.intentId;
+  if (!intent.reviewUrl.includes(`#intent=`)) {
+    throw new Error("review-required pay --json must include a full review URL payload");
+  }
+  if (intent.reviewCommand !== `npx jup-sh@alpha review ${intentId}`) {
+    throw new Error(`unexpected reviewCommand: ${intent.reviewCommand}`);
+  }
 
   console.log("alpha smoke: pay json reject");
   const rejected = JSON.parse(
@@ -321,6 +328,9 @@ try {
   }
   if (!reviewJson.reviewUrl.includes("#intent=") || reviewJson.payload.length < 100) {
     throw new Error("review --json did not include review URL and payload");
+  }
+  if (reviewJson.reviewCommand !== `npx jup-sh@alpha review ${intentId}`) {
+    throw new Error(`review --json returned unexpected reviewCommand: ${reviewJson.reviewCommand}`);
   }
 
   console.log(`alpha smoke: ok (${intentId})`);

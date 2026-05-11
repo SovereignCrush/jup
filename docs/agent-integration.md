@@ -155,12 +155,14 @@ When policy requires review, the JSON output includes:
 {
   "decision": "review_required",
   "nextAction": "open_review",
-  "reviewUrl": "https://www.jup.sh/pay/intent_xxx"
+  "reviewUrl": "https://www.jup.sh/pay/intent_xxx#intent=...",
+  "reviewCommand": "npx jup-sh@alpha review intent_xxx"
 }
 ```
 
 The agent should return that URL to the user or open it in the surrounding app.
-It should not bypass policy.
+It should not bypass policy. `reviewCommand` is available when the surrounding
+tool wants to recreate the URL from the local intent store.
 
 You can also recreate the full Risk Review URL from a saved intent:
 
@@ -182,6 +184,7 @@ This returns:
   "decision": "review_required",
   "nextAction": "open_review",
   "reviewUrl": "https://www.jup.sh/pay/intent_xxx#intent=...",
+  "reviewCommand": "npx jup-sh@alpha review intent_xxx",
   "payload": "..."
 }
 ```

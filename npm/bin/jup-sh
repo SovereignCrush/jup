@@ -139,11 +139,12 @@ async function runPay(args) {
     reasons: finalResult.reasons,
     policyChecks: finalResult.checks,
     reviewUrl: `${reviewBaseUrl}/pay/${intentId}`,
+    reviewCommand: buildReviewCommand(intentId),
     createdAt: new Date().toISOString(),
   };
 
   saveIntent(intent, effectiveOptions.store);
-  return intent;
+  return withReviewHandoff(intent, reviewBaseUrl);
 }
 
 function runInit(args) {
@@ -347,9 +348,9 @@ function runDoctor(args) {
 
 function printReviewExport(intentId, effectiveOptions, options) {
   const intent = loadIntent(intentId, effectiveOptions.store);
-  const payload = Buffer.from(JSON.stringify(intent), "utf8").toString("base64url");
   const baseUrl = (effectiveOptions.reviewBaseUrl ?? DEFAULT_CONFIG.reviewBaseUrl).replace(/\/+$/, "");
-  const reviewUrl = `${baseUrl}/pay/${intent.intentId}#intent=${payload}`;
+  const payload = encodeReviewPayload(intent);
+  const reviewUrl = buildFullReviewUrl(intent, baseUrl);
 
   if (options.payloadOnly) {
     console.log(payload);
@@ -364,6 +365,7 @@ function printReviewExport(intentId, effectiveOptions, options) {
           decision: intent.decision,
           nextAction: intent.nextAction,
           reviewUrl,
+          reviewCommand: buildReviewCommand(intent.intentId),
           payload,
         },
         null,
@@ -374,6 +376,29 @@ function printReviewExport(intentId, effectiveOptions, options) {
   }
 
   console.log(reviewUrl);
+}
+
+function withReviewHandoff(intent, reviewBaseUrl) {
+  if (intent.nextAction !== "open_review") return intent;
+
+  return {
+    ...intent,
+    reviewUrl: buildFullReviewUrl(intent, reviewBaseUrl),
+    reviewCommand: buildReviewCommand(intent.intentId),
+  };
+}
+
+function buildFullReviewUrl(intent, reviewBaseUrl) {
+  const baseUrl = reviewBaseUrl.replace(/\/+$/, "");
+  return `${baseUrl}/pay/${intent.intentId}#intent=${encodeReviewPayload(intent)}`;
+}
+
+function encodeReviewPayload(intent) {
+  return Buffer.from(JSON.stringify(intent), "utf8").toString("base64url");
+}
+
+function buildReviewCommand(intentId) {
+  return `npx ${PACKAGE_JSON.name}@alpha review ${intentId}`;
 }
 
 function parseOptions(args) {

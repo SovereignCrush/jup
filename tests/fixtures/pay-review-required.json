@@ -66,6 +66,7 @@
       "message": "quote price impact is 12 bps, within the 100 bps policy limit"
     }
   ],
-  "reviewUrl": "https://jup.sh/pay/intent_example_review_required",
+  "reviewUrl": "https://www.jup.sh/pay/intent_example_review_required#intent=eyJpbnRlbnRJZCI6ImludGVudF9leGFtcGxlX3Jldmlld19yZXF1aXJlZCJ9",
+  "reviewCommand": "npx jup-sh@alpha review intent_example_review_required",
   "createdAt": "2026-05-09T00:00:00Z"
 }

@@ -71,7 +71,8 @@ This makes the CLI safe to call from scripts, local tools, and agent runtimes.
 | `riskLevel` | string | yes | Coarse risk level derived from policy. |
 | `reasons` | string[] | yes | Human-readable review or rejection reasons. |
 | `policyChecks` | object[] | yes | Deterministic policy evidence. |
-| `reviewUrl` | string | yes | Hosted Risk Review URL for the intent. |
+| `reviewUrl` | string | yes | Hosted Risk Review URL for the intent. For `review_required`, this is a full URL with `#intent=` payload. |
+| `reviewCommand` | string | yes | CLI shortcut that recreates the Risk Review URL from the local intent store. |
 | `createdAt` | string | yes | RFC 3339 timestamp. |
 
 ## Nested Objects
@@ -190,7 +191,8 @@ Current check names:
       "message": "recipient is not trusted"
     }
   ],
-  "reviewUrl": "https://jup.sh/pay/intent_abc123",
+  "reviewUrl": "https://www.jup.sh/pay/intent_abc123#intent=...",
+  "reviewCommand": "npx jup-sh@alpha review intent_abc123",
   "createdAt": "2026-05-09T00:00:00Z"
 }
 ```
@@ -201,7 +203,8 @@ A full fixture is stored at:
 tests/fixtures/pay-review-required.json
 ```
 
-Runtime-specific fields include `intentId`, `reviewUrl`, and `createdAt`.
+Runtime-specific fields include `intentId`, `reviewUrl`, `reviewCommand`, and
+`createdAt`.
 
 ## Parser Guidance For Agents
 
@@ -210,7 +213,9 @@ Agents should:
 1. Parse stdout as JSON only when `--json` is set.
 2. Treat exit code `2` as a valid policy state.
 3. Use `nextAction` for control flow.
-4. Show `reasons` and `policyChecks` when asking a user to review.
-5. Never infer that `auto_pay` means a transaction has been signed. In the
+4. For `open_review`, return or open `reviewUrl`; `reviewCommand` is available
+   for local CLI handoff.
+5. Show `reasons` and `policyChecks` when asking a user to review.
+6. Never infer that `auto_pay` means a transaction has been signed. In the
    current alpha it only means the intent is ready for a future authorization
    step.
