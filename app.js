@@ -364,19 +364,18 @@ function renderHome() {
             Risk and settlement for <span>Solana agent payments.</span>
           </h1>
           <p class="hero-lines">
+            <span>npm alpha is live: npx jup-sh@alpha</span>
             <span>Agents pay with any verified token.</span>
             <span>Recipients settle in USDC.</span>
             <span>Policy decides when humans step in.</span>
           </p>
           <div class="try-block">
-            <div class="try-label">Try it now</div>
+            <div class="try-label">Start with the alpha CLI</div>
             <button class="terminal-line" type="button" data-copy-command>
               <span>
-                <em>$</em> <strong>pay</strong>
-                <code>--agent deepseek</code>
-                <code>--token SOL</code>
-                <code>--amount 20</code>
-                <code>--settle USDC</code>
+                <em>$</em> <strong>npx</strong>
+                <code>jup-sh@alpha</code>
+                <code>init</code>
               </span>
               <small aria-label="Copy command"></small>
             </button>
@@ -407,61 +406,61 @@ function renderHome() {
         <span class="section-kicker">Product Layer</span>
         <h2>Jupiter-powered settlement, policy-driven risk.</h2>
         <p>
-          jup.sh sits between agents and Solana payments. Jupiter routes any
-          verified token into USDC settlement, while the risk layer decides
-          whether a payment should auto-execute, require review, or be rejected.
+          jup.sh is now a public npm alpha for local agent payment intents.
+          The CLI initializes a workspace, checks local policy, estimates
+          settlement, and creates a Risk Review URL when humans need to step in.
         </p>
         <div class="hero-actions tight-actions">
-          <a class="primary-btn" href="/pay/${state.invoice.id}" data-link>View Risk Review</a>
+          <a class="primary-btn" href="/pay/${state.invoice.id}" data-link>View Risk Review demo</a>
         </div>
       </div>
       <div class="mini-table">
-        <div><span>Settlement</span><strong>Jupiter API</strong></div>
-        <div><span>Risk</span><strong>Policy engine</strong></div>
-        <div><span>Agents pay with</span><strong>Any verified token</strong></div>
-        <div><span>Recipients get</span><strong>USDC</strong></div>
-        <div><span>Decision</span><strong>Auto pay / review / reject</strong></div>
-        <div><span>Flow</span><strong>Agent-native payments</strong></div>
+        <div><span>Install path</span><strong>npx jup-sh@alpha</strong></div>
+        <div><span>Setup</span><strong>init + doctor</strong></div>
+        <div><span>Risk</span><strong>policy trust / set</strong></div>
+        <div><span>Payment</span><strong>pay --json</strong></div>
+        <div><span>Decision</span><strong>auto / review / reject</strong></div>
+        <div><span>Review</span><strong>review intent_xxx</strong></div>
       </div>
     </section>
 
     <section class="pay-sh-split">
       <div>
         <span class="section-kicker">How it works</span>
-        <h2>Intent. Policy. Settlement.</h2>
+        <h2>Init. Policy. Pay. Review.</h2>
         <p>
-          Agents never receive private keys. They submit a structured payment
-          intent; jup.sh evaluates policy, asks Jupiter for settlement, then
-          continues to wallet authorization or Risk Review.
+          Agents never receive private keys. They call a local CLI, branch on
+          deterministic JSON and exit codes, and return Risk Review when policy
+          requires human inspection.
         </p>
       </div>
       <div class="flow-stack">
         <article class="flow-step">
           <span class="flow-index">01</span>
           <div>
-            <strong>Agent intent</strong>
-            <span>Agent, token, amount, recipient, and reference are captured in one structured request.</span>
+            <strong>Initialize workspace</strong>
+            <span>Run init, then doctor to confirm local config, policy, intent store, review URL, and quote provider.</span>
           </div>
         </article>
         <article class="flow-step">
           <span class="flow-index">02</span>
           <div>
-            <strong>Policy decision</strong>
-            <span>Limits, token verification, recipient history, route quality, and behavior are checked.</span>
+            <strong>Tune policy</strong>
+            <span>Trust known recipients, set local limits, and keep unknown or risky payments on the review path.</span>
           </div>
         </article>
         <article class="flow-step">
           <span class="flow-index">03</span>
           <div>
-            <strong>Jupiter settlement</strong>
-            <span>Allowed payments use Jupiter API to quote the payer token into USDC settlement.</span>
+            <strong>Create intent</strong>
+            <span>Agents call pay --json with token, amount, recipient, and settlement target. Jupiter remains quote-only today.</span>
           </div>
         </article>
         <article class="flow-step">
           <span class="flow-index">04</span>
           <div>
-            <strong>Authorize or review</strong>
-            <span>Clean intents continue to wallet authorization. Flagged intents open Risk Review.</span>
+            <strong>Auto-pay or review</strong>
+            <span>Policy returns auto_pay, review_required, or rejected. review intent_xxx rebuilds the human review URL.</span>
           </div>
         </article>
       </div>
@@ -680,12 +679,13 @@ function renderDocs() {
         <section id="quickstart" class="doc-section">
           <h2>Quickstart</h2>
           <p>
-            The intended developer experience is one command or one SDK call.
-            The agent asks for a payment, jup.sh evaluates policy, and payments
-            inside policy continue automatically. Flagged payments return a
-            Risk Review link.
+            The npm alpha is live. Start with a local workspace, inspect it,
+            tune policy, then create a structured payment intent.
           </p>
-          <div class="code-card">pay --agent deepseek --token SOL --amount 20 --settle USDC</div>
+          <div class="code-card">npx jup-sh@alpha init
+npx jup-sh@alpha doctor
+npx jup-sh@alpha policy trust api.vendor.example
+npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json</div>
         </section>
 
         <section id="model" class="doc-section">
@@ -695,18 +695,18 @@ function renderDocs() {
             Jupiter routing and a policy gate to produce a safe Solana agent
             payment flow.
           </p>
-          <div class="code-card">agent intent -> policy decision -> Jupiter settlement -> authorize or review</div>
+          <div class="code-card">init -> doctor -> policy -> pay --json -> auto_pay / review_required / rejected</div>
         </section>
 
         <section id="api" class="doc-section">
-          <h2>API surface</h2>
+          <h2>CLI surface</h2>
           <div class="api-table">
-            <div><code>POST /api/intents</code><span>Create a payment intent for an agent or app.</span></div>
-            <div><code>POST /api/intents/:id/risk</code><span>Evaluate policy, token, route, recipient, and behavior risk.</span></div>
-            <div><code>POST /api/intents/:id/quote</code><span>Quote any supported payer token into USDC.</span></div>
-            <div><code>POST /api/intents/:id/transaction</code><span>Build a Solana transaction request for wallet approval.</span></div>
-            <div><code>GET /pay/:id</code><span>Open Risk Review only when policy requires human inspection.</span></div>
-            <div><code>GET /api/intents/:id/status</code><span>Track confirmation and settlement status.</span></div>
+            <div><code>jup-sh init</code><span>Create local config and policy files.</span></div>
+            <div><code>jup-sh doctor</code><span>Check config, policy, intent store, review URL, quote provider, and version.</span></div>
+            <div><code>jup-sh policy trust</code><span>Allow a known API or vendor recipient inside local policy.</span></div>
+            <div><code>jup-sh pay --json</code><span>Create a payment intent and return decision-aware JSON.</span></div>
+            <div><code>jup-sh review</code><span>Rebuild a Risk Review URL from a saved intent.</span></div>
+            <div><code>jup-sh intent list</code><span>Inspect local payment intents.</span></div>
           </div>
         </section>
 
@@ -729,9 +729,9 @@ function renderDocs() {
         <section id="open-source" class="doc-section">
           <h2>Open source</h2>
           <p>
-            The planned repo should make jup.sh easy to inspect and integrate:
-            policy examples, Risk Review pages, an agent SDK, CLI examples, and
-            transaction request examples for Solana wallets.
+            jup.sh is open source and already publishes a public npm alpha:
+            policy examples, Risk Review pages, CLI examples, SDK prototypes,
+            and release notes are available in the repository.
           </p>
         </section>
 
@@ -752,7 +752,7 @@ function renderDocs() {
           </p>
         </section>
 
-        <a class="primary-btn" href="/pay/${state.invoice.id}" data-link>View Risk Review</a>
+        <a class="primary-btn" href="/pay/${state.invoice.id}" data-link>View Risk Review demo</a>
       </article>
     </section>
   `;
@@ -823,7 +823,14 @@ document.addEventListener("click", (event) => {
 
   const command = event.target.closest("[data-copy-command]");
   if (command) {
-    navigator.clipboard?.writeText("pay --agent deepseek --token SOL --amount 20 --settle USDC");
+    navigator.clipboard?.writeText(
+      [
+        "npx jup-sh@alpha init",
+        "npx jup-sh@alpha doctor",
+        "npx jup-sh@alpha policy trust api.vendor.example",
+        "npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json",
+      ].join("\n")
+    );
     showToast("Command copied.");
   }
 });
