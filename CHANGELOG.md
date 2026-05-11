@@ -2,6 +2,16 @@
 
 All notable changes to jup.sh will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- Simplified the homepage CLI prompt to the two-line alpha entry point:
+  `npx jup-sh@alpha init` and `npx jup-sh@alpha doctor`.
+- Aligned README and GitHub Pages docs around the same hierarchy: short
+  homepage entry first, full `init -> doctor -> policy -> pay -> review`
+  developer flow in docs.
+
 ## 0.1.0-alpha.6 - 2026-05-11
 
 ### Added

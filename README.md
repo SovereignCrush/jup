@@ -83,6 +83,11 @@ Run the npm alpha:
 ```bash
 npx jup-sh@alpha init
 npx jup-sh@alpha doctor
+```
+
+Then configure policy and create a payment intent:
+
+```bash
 npx jup-sh@alpha policy trust api.vendor.example
 npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json
 ```
