@@ -1895,7 +1895,7 @@ body.light-route {
 
 .try-block {
   width: 100%;
-  max-width: 720px;
+  max-width: 560px;
   min-width: 0;
   margin: 32px auto 0;
   border: 0;
@@ -1945,6 +1945,24 @@ body.light-route {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.terminal-flow {
+  flex: 1 1 auto;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  white-space: normal;
+}
+
+.terminal-command {
+  display: block;
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .terminal-line em {
@@ -2926,6 +2944,15 @@ body.light-route {
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  .terminal-flow code {
+    display: inline;
+    margin: 0 0 0 0.35em;
+  }
+
+  .terminal-command {
+    overflow-wrap: anywhere;
   }
 
   .terminal-line small {

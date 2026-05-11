@@ -364,7 +364,6 @@ function renderHome() {
             Risk and settlement for <span>Solana agent payments.</span>
           </h1>
           <p class="hero-lines">
-            <span>npm alpha is live: npx jup-sh@alpha</span>
             <span>Agents pay with any verified token.</span>
             <span>Recipients settle in USDC.</span>
             <span>Policy decides when humans step in.</span>
@@ -372,10 +371,9 @@ function renderHome() {
           <div class="try-block">
             <div class="try-label">Start with the alpha CLI</div>
             <button class="terminal-line" type="button" data-copy-command>
-              <span>
-                <em>$</em> <strong>npx</strong>
-                <code>jup-sh@alpha</code>
-                <code>init</code>
+              <span class="terminal-flow">
+                <span class="terminal-command"><em>$</em> <strong>npx</strong> <code>jup-sh@alpha</code> <code>init</code></span>
+                <span class="terminal-command"><em>$</em> <strong>npx</strong> <code>jup-sh@alpha</code> <code>doctor</code></span>
               </span>
               <small aria-label="Copy command"></small>
             </button>
@@ -827,8 +825,6 @@ document.addEventListener("click", (event) => {
       [
         "npx jup-sh@alpha init",
         "npx jup-sh@alpha doctor",
-        "npx jup-sh@alpha policy trust api.vendor.example",
-        "npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json",
       ].join("\n")
     );
     showToast("Command copied.");
