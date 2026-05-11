@@ -41,6 +41,7 @@ jup-sh policy trust api.vendor.example
 jup-sh policy set max-auto 10
 jup-sh intent list
 jup-sh intent export intent_xxx
+jup-sh review intent_xxx
 ```
 
 The CLI JSON contract is documented in:

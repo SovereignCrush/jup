@@ -299,6 +299,21 @@ try {
     throw new Error("intent export payload is unexpectedly short");
   }
 
+  console.log("alpha smoke: review url");
+  const reviewUrl = run(["review", intentId, "--store", store]).trim();
+  if (!reviewUrl.includes("jup.sh/pay/") || !reviewUrl.includes("#intent=")) {
+    throw new Error("review command did not print a full review URL");
+  }
+
+  console.log("alpha smoke: review json");
+  const reviewJson = JSON.parse(run(["review", intentId, "--store", store, "--json"]));
+  if (reviewJson.intentId !== intentId || reviewJson.decision !== "review_required") {
+    throw new Error("review --json did not return the expected intent");
+  }
+  if (!reviewJson.reviewUrl.includes("#intent=") || reviewJson.payload.length < 100) {
+    throw new Error("review --json did not include review URL and payload");
+  }
+
   console.log(`alpha smoke: ok (${intentId})`);
 } finally {
   rmSync(root, { recursive: true, force: true });

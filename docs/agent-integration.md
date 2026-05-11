@@ -150,6 +150,30 @@ When policy requires review, the JSON output includes:
 The agent should return that URL to the user or open it in the surrounding app.
 It should not bypass policy.
 
+You can also recreate the full Risk Review URL from a saved intent:
+
+```bash
+npx jup-sh@alpha review intent_xxx
+```
+
+For agents, use JSON mode:
+
+```bash
+npx jup-sh@alpha review intent_xxx --json
+```
+
+This returns:
+
+```json
+{
+  "intentId": "intent_xxx",
+  "decision": "review_required",
+  "nextAction": "open_review",
+  "reviewUrl": "https://www.jup.sh/pay/intent_xxx#intent=...",
+  "payload": "..."
+}
+```
+
 ## 5. Export A Review Payload
 
 Saved intents can be exported as a static Risk Review URL:
@@ -157,6 +181,9 @@ Saved intents can be exported as a static Risk Review URL:
 ```bash
 npx jup-sh@alpha intent export intent_xxx
 ```
+
+`jup-sh review <intent_id>` is the preferred shortcut for this path. `intent
+export` remains available for lower-level scripting.
 
 The exported URL uses a fragment payload:
 

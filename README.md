@@ -142,6 +142,12 @@ Export a saved intent as a Risk Review URL:
 npm run cli -- intent export intent_xxx
 ```
 
+Use the review shortcut:
+
+```bash
+npm run cli:alpha -- review intent_xxx
+```
+
 Show a saved intent:
 
 ```bash
@@ -179,6 +185,7 @@ V1 includes:
 - Alpha.2 npm release notes in `docs/releases/0.1.0-alpha.2.md`.
 - Alpha.3 init release notes in `docs/releases/0.1.0-alpha.3.md`.
 - Alpha.4 policy tuning release notes in `docs/releases/0.1.0-alpha.4.md`.
+- Alpha.5 review shortcut release notes in `docs/releases/0.1.0-alpha.5.md`.
 - GitHub Pages developer docs in `docs/`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
 - Risk Review export design in `docs/risk-review-export-design.md`.

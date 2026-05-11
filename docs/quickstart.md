@@ -261,6 +261,12 @@ Export a Risk Review URL:
 npm run cli:alpha -- intent export intent_xxx
 ```
 
+Or use the review shortcut:
+
+```bash
+npm run cli:alpha -- review intent_xxx
+```
+
 The exported URL contains a fragment payload:
 
 ```txt

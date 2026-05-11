@@ -2,6 +2,28 @@
 
 All notable changes to jup.sh will be documented in this file.
 
+## 0.1.0-alpha.5 - 2026-05-11
+
+### Added
+
+- Added top-level `jup-sh review <intent_id>` as the preferred shortcut for
+  rebuilding a full Risk Review URL from a saved intent.
+- Added `jup-sh review <intent_id> --json` for agents and scripts.
+- Added `jup-sh review <intent_id> --payload-only` for low-level payload
+  handoff.
+- Updated Agent Integration and Quickstart docs around the review path.
+- Extended alpha smoke tests to cover review URL and review JSON output.
+
+### Not Included
+
+- No wallet signing.
+- No swap execution.
+- No Solana Pay transaction request generation.
+- No custody of funds.
+- No remote backend persistence.
+- No authentication.
+- No published SDK package yet.
+
 ## 0.1.0-alpha.4 - 2026-05-11
 
 ### Added

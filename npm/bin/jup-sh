@@ -81,6 +81,11 @@ async function main() {
     return;
   }
 
+  if (command === "review") {
+    runReview(args);
+    return;
+  }
+
   throw new Error(`unknown command: ${command}`);
 }
 
@@ -259,18 +264,50 @@ function runIntent(args) {
 
   if (subcommand === "export") {
     const [intentId] = rest.filter((item) => !item.startsWith("--"));
-    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
-    const payload = Buffer.from(JSON.stringify(intent), "utf8").toString("base64url");
-    if (options.payloadOnly) {
-      console.log(payload);
-    } else {
-      const baseUrl = (effectiveOptions.reviewBaseUrl ?? DEFAULT_CONFIG.reviewBaseUrl).replace(/\/+$/, "");
-      console.log(`${baseUrl}/pay/${intent.intentId}#intent=${payload}`);
-    }
+    printReviewExport(required(intentId, "intent_id"), effectiveOptions, options);
     return;
   }
 
   throw new Error("intent command must be list, show, or export");
+}
+
+function runReview(args) {
+  const options = parseOptions(args);
+  const config = loadConfig(options.config);
+  const effectiveOptions = mergeConfigOptions(options, config);
+  const intentId = required(firstPositional(args), "intent_id");
+  printReviewExport(intentId, effectiveOptions, options);
+}
+
+function printReviewExport(intentId, effectiveOptions, options) {
+  const intent = loadIntent(intentId, effectiveOptions.store);
+  const payload = Buffer.from(JSON.stringify(intent), "utf8").toString("base64url");
+  const baseUrl = (effectiveOptions.reviewBaseUrl ?? DEFAULT_CONFIG.reviewBaseUrl).replace(/\/+$/, "");
+  const reviewUrl = `${baseUrl}/pay/${intent.intentId}#intent=${payload}`;
+
+  if (options.payloadOnly) {
+    console.log(payload);
+    return;
+  }
+
+  if (options.json) {
+    console.log(
+      JSON.stringify(
+        {
+          intentId: intent.intentId,
+          decision: intent.decision,
+          nextAction: intent.nextAction,
+          reviewUrl,
+          payload,
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
+  console.log(reviewUrl);
 }
 
 function parseOptions(args) {
@@ -691,6 +728,7 @@ function printHelp() {
   console.log("  intent list [--json]");
   console.log("  intent show <intent_id> [--json]");
   console.log("  intent export <intent_id> [--payload-only]");
+  console.log("  review <intent_id> [--json] [--payload-only]");
 }
 
 function exitCodeForDecision(decision) {
