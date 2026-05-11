@@ -34,7 +34,7 @@ https://jerrywang33.github.io/jup-sh/
 
 ## Current MVP
 
-The current MVP is a source-run CLI plus static Risk Review prototype:
+The current MVP is an npm alpha CLI plus static Risk Review prototype:
 
 ```txt
 policy init/show
@@ -152,6 +152,7 @@ V1 includes:
 - npm alpha release checklist in `docs/npm-alpha-release-checklist.md`.
 - Draft alpha release notes in `docs/releases/0.1.0-alpha.0.md`.
 - Alpha.1 release notes in `docs/releases/0.1.0-alpha.1.md`.
+- Alpha.2 npm release notes in `docs/releases/0.1.0-alpha.2.md`.
 - GitHub Pages developer docs in `docs/`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
 - Risk Review export design in `docs/risk-review-export-design.md`.
@@ -169,10 +170,10 @@ Current source command:
 npm run cli -- pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
-Target published command:
+Published npm alpha command:
 
 ```bash
-npx jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
+npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 Local npm wrapper prototype:

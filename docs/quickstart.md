@@ -1,11 +1,11 @@
 ---
 title: Quickstart
-description: Run the jup.sh source alpha locally.
+description: Run the jup.sh alpha locally or with npx.
 ---
 
 # Quickstart
 
-This guide runs the current `jup.sh` alpha from source.
+This guide runs the current `jup.sh` alpha with `npx` or from source.
 
 The alpha is useful for testing the agent-facing payment contract:
 
@@ -19,11 +19,15 @@ It does not sign transactions, execute swaps, custody funds, or move tokens.
 
 You need:
 
-- Node.js and npm;
-- a working Rust toolchain;
-- git.
+- Node.js and npm.
 
-Clone and install:
+For the npm alpha, run:
+
+```bash
+npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC --json
+```
+
+For source development, you also need a working Rust toolchain and git:
 
 ```bash
 git clone https://github.com/jerrywang33/jup-sh.git
@@ -31,9 +35,8 @@ cd jup-sh
 npm install
 ```
 
-The npm wrapper is local and private in this alpha. Use `npm run cli:alpha --`
-for the developer-facing command, or `npm run cli --` to run the Rust CLI
-directly through Cargo.
+Use `npm run cli:alpha --` for the local Node wrapper, or `npm run cli --` to
+run the Rust CLI directly through Cargo.
 
 ## Command Flow
 
@@ -247,8 +250,8 @@ npm run sdk:smoke
 npm run sdk:jupiter:live
 ```
 
-The SDK returns the same `PaymentIntent` contract as the CLI JSON mode. It does
-not publish an npm package or call a hosted backend yet.
+The SDK returns the same `PaymentIntent` contract as the CLI JSON mode. The SDK
+itself is still source-only and does not call a hosted backend yet.
 
 Use the SDK Jupiter quote-only provider:
 

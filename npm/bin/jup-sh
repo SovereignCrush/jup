@@ -1,27 +1,534 @@
 #!/usr/bin/env node
 
-const { spawnSync } = require("node:child_process");
-const { existsSync } = require("node:fs");
-const { resolve } = require("node:path");
+const { randomUUID } = require("node:crypto");
+const { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } = require("node:fs");
+const { join, resolve } = require("node:path");
 
-const packageRoot = resolve(__dirname, "..");
-const repoRoot = resolve(packageRoot, "..");
-const rustDir = resolve(repoRoot, "rust");
+const DEFAULT_POLICY = {
+  maxAutoSettleUSDC: 5,
+  maxAllowedSettleUSDC: 100,
+  maxPriceImpactBps: 100,
+  reviewHighPriceImpact: true,
+  verifiedTokens: ["USDC", "SOL", "JUP", "BONK"],
+  trustedRecipients: [],
+  reviewUnknownRecipients: true,
+};
 
-if (!existsSync(resolve(rustDir, "Cargo.toml"))) {
-  console.error("jup-sh alpha wrapper could not find the Rust workspace.");
-  console.error("This development wrapper must be run from the jup-sh repository.");
+const MOCK_PRICES_USDC = {
+  USDC: 1,
+  SOL: 150,
+  JUP: 1.2,
+  BONK: 0.00002,
+};
+
+const TOKENS = {
+  SOL: {
+    mint: "So11111111111111111111111111111111111111112",
+    decimals: 9,
+  },
+  USDC: {
+    mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    decimals: 6,
+  },
+  JUP: {
+    mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    decimals: 6,
+  },
+  BONK: {
+    mint: "DezXAZ8z7PnrnRJjz3my2u6r5KiL3HR8APpPB2634B2",
+    decimals: 5,
+  },
+};
+
+main().catch((error) => {
+  console.error(`error: ${error.message}`);
   process.exit(1);
-}
-
-const result = spawnSync("cargo", ["run", "--quiet", "--", ...process.argv.slice(2)], {
-  cwd: rustDir,
-  stdio: "inherit",
 });
 
-if (result.error) {
-  console.error(`jup-sh failed to start: ${result.error.message}`);
-  process.exit(1);
+async function main() {
+  const [command, ...args] = process.argv.slice(2);
+
+  if (!command || command === "--help" || command === "-h") {
+    printHelp();
+    return;
+  }
+
+  if (command === "pay") {
+    const intent = await runPay(args);
+    printIntent(intent, hasFlag(args, "json"));
+    process.exit(exitCodeForDecision(intent.decision));
+  }
+
+  if (command === "policy") {
+    runPolicy(args);
+    return;
+  }
+
+  if (command === "intent") {
+    runIntent(args);
+    return;
+  }
+
+  throw new Error(`unknown command: ${command}`);
 }
 
-process.exit(result.status ?? 1);
+async function runPay(args) {
+  const options = parseOptions(args);
+  const policy = loadPolicy(options.policy);
+  const { settleAmount, settleToken } = parseSettlement(options);
+  const input = {
+    agent: required(options.agent, "agent"),
+    payToken: normalizeToken(required(options.token, "token")),
+    settleAmount,
+    settleToken: normalizeToken(settleToken),
+    recipient: options.recipient ?? null,
+    reference: options.reference ?? null,
+  };
+
+  const prePolicy = evaluatePolicy(input, policy);
+  const quote =
+    prePolicy.decision === "rejected"
+      ? null
+      : await quoteSettlement(input, options, policy);
+  const finalResult = quote
+    ? policyResultFromChecks([...prePolicy.checks, ...evaluateQuotePolicy(quote, policy)])
+    : prePolicy;
+  const intentId = `intent_${randomUUID().replaceAll("-", "")}`;
+  const reviewBaseUrl = (options.reviewBaseUrl ?? "https://jup.sh").replace(/\/+$/, "");
+  const intent = {
+    intentId,
+    agent: input.agent,
+    payToken: input.payToken,
+    recipient: input.recipient,
+    reference: input.reference,
+    settlement: {
+      amount: input.settleAmount,
+      token: input.settleToken,
+    },
+    quote,
+    status: statusForDecision(finalResult.decision),
+    decision: finalResult.decision,
+    nextAction: finalResult.nextAction,
+    riskLevel: finalResult.riskLevel,
+    reasons: finalResult.reasons,
+    policyChecks: finalResult.checks,
+    reviewUrl: `${reviewBaseUrl}/pay/${intentId}`,
+    createdAt: new Date().toISOString(),
+  };
+
+  saveIntent(intent, options.store);
+  return intent;
+}
+
+function runPolicy(args) {
+  const [subcommand, ...rest] = args;
+  const options = parseOptions(rest);
+
+  if (subcommand === "show") {
+    const policy = loadPolicy(options.policy);
+    if (options.json) {
+      console.log(JSON.stringify(policy, null, 2));
+    } else {
+      printPolicy(policy);
+    }
+    return;
+  }
+
+  if (subcommand === "init") {
+    const path = options.path ?? "jup.policy.json";
+    if (existsSync(path) && !options.force) {
+      throw new Error(`${path} already exists; pass --force to overwrite`);
+    }
+    writeFileSync(path, `${JSON.stringify(DEFAULT_POLICY, null, 2)}\n`);
+    console.log(`wrote ${path}`);
+    return;
+  }
+
+  throw new Error("policy command must be show or init");
+}
+
+function runIntent(args) {
+  const [subcommand, ...rest] = args;
+  const options = parseOptions(rest);
+
+  if (subcommand === "list") {
+    const limit = Number(options.limit ?? 20);
+    const intents = listIntents(options.store).slice(0, limit);
+    if (options.json) {
+      console.log(JSON.stringify(intents, null, 2));
+    } else {
+      for (const intent of intents) {
+        console.log(`${intent.intentId}\t${intent.decision}\t${intent.settlement.amount} ${intent.settlement.token}`);
+      }
+    }
+    return;
+  }
+
+  if (subcommand === "show") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), options.store);
+    if (options.json) {
+      console.log(JSON.stringify(intent, null, 2));
+    } else {
+      printIntent(intent, false);
+    }
+    return;
+  }
+
+  if (subcommand === "export") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), options.store);
+    const payload = Buffer.from(JSON.stringify(intent), "utf8").toString("base64url");
+    if (options.payloadOnly) {
+      console.log(payload);
+    } else {
+      const baseUrl = (options.reviewBaseUrl ?? "https://jup.sh").replace(/\/+$/, "");
+      console.log(`${baseUrl}/pay/${intent.intentId}#intent=${payload}`);
+    }
+    return;
+  }
+
+  throw new Error("intent command must be list, show, or export");
+}
+
+function parseOptions(args) {
+  const options = {};
+
+  for (let index = 0; index < args.length; index += 1) {
+    const item = args[index];
+    if (!item.startsWith("--")) continue;
+
+    const key = toCamelCase(item.slice(2));
+    const next = args[index + 1];
+
+    if (!next || next.startsWith("--")) {
+      options[key] = true;
+    } else if (key === "settle") {
+      const values = [next];
+      if (args[index + 2] && !args[index + 2].startsWith("--")) {
+        values.push(args[index + 2]);
+        index += 1;
+      }
+      options[key] = values;
+      index += 1;
+    } else {
+      options[key] = next;
+      index += 1;
+    }
+  }
+
+  return options;
+}
+
+function parseSettlement(options) {
+  const settle = Array.isArray(options.settle) ? options.settle : [];
+
+  if (options.amount !== undefined) {
+    if (settle.length !== 1) {
+      throw new Error("use --amount <amount> --settle <token>");
+    }
+    return {
+      settleAmount: positiveAmount(Number(options.amount), "amount"),
+      settleToken: settle[0],
+    };
+  }
+
+  if (settle.length === 2) {
+    return {
+      settleAmount: positiveAmount(Number(settle[0]), "settle amount"),
+      settleToken: settle[1],
+    };
+  }
+
+  throw new Error("settlement must be provided as --amount <amount> --settle <token>");
+}
+
+function loadPolicy(path) {
+  const defaultPath = "jup.policy.json";
+  const effectivePath = path ?? (existsSync(defaultPath) ? defaultPath : null);
+  if (!effectivePath) return clonePolicy(DEFAULT_POLICY);
+
+  return {
+    ...clonePolicy(DEFAULT_POLICY),
+    ...JSON.parse(readFileSync(effectivePath, "utf8")),
+  };
+}
+
+function clonePolicy(policy) {
+  return {
+    ...policy,
+    verifiedTokens: [...policy.verifiedTokens],
+    trustedRecipients: [...policy.trustedRecipients],
+  };
+}
+
+function evaluatePolicy(input, policy) {
+  const verifiedTokens = new Set(policy.verifiedTokens.map(normalizeToken));
+  const trustedRecipients = new Set(policy.trustedRecipients);
+  const checks = [];
+
+  checks.push(
+    verifiedTokens.has(input.payToken)
+      ? policyCheck("verified_token", "pass", `${input.payToken} is verified`)
+      : policyCheck("verified_token", "reject", `${input.payToken} is not a verified token`)
+  );
+  checks.push(
+    input.settleToken === "USDC"
+      ? policyCheck("settlement_token", "pass", "USDC settlement is supported")
+      : policyCheck("settlement_token", "reject", "only USDC settlement is supported in Phase 1")
+  );
+  checks.push(
+    input.settleAmount <= policy.maxAllowedSettleUSDC
+      ? policyCheck(
+          "max_allowed_amount",
+          "pass",
+          `${trimNumber(input.settleAmount)} USDC is within the max allowed limit`
+        )
+      : policyCheck(
+          "max_allowed_amount",
+          "reject",
+          `settlement amount exceeds ${trimNumber(policy.maxAllowedSettleUSDC)} USDC`
+        )
+  );
+  checks.push(
+    !policy.reviewUnknownRecipients
+      ? policyCheck("recipient_trust", "pass", "unknown recipients do not require review")
+      : input.recipient && trustedRecipients.has(input.recipient)
+        ? policyCheck("recipient_trust", "pass", "recipient is trusted")
+        : policyCheck("recipient_trust", "review", "recipient is not trusted")
+  );
+  checks.push(
+    input.settleAmount <= policy.maxAutoSettleUSDC
+      ? policyCheck(
+          "auto_pay_limit",
+          "pass",
+          `${trimNumber(input.settleAmount)} USDC is within the auto-pay limit`
+        )
+      : policyCheck(
+          "auto_pay_limit",
+          "review",
+          `settlement amount exceeds auto-pay limit of ${trimNumber(policy.maxAutoSettleUSDC)} USDC`
+        )
+  );
+
+  return policyResultFromChecks(checks);
+}
+
+async function quoteSettlement(input, options) {
+  if ((options.quoteProvider ?? "mock") === "jupiter") {
+    return quoteJupiter(input, options);
+  }
+  return quoteMock(input);
+}
+
+function quoteMock(input) {
+  const price = MOCK_PRICES_USDC[input.payToken];
+  if (!price || price <= 0) {
+    throw new Error(`no mock quote price for token ${input.payToken}`);
+  }
+
+  return {
+    source: "mock_jupiter",
+    inputToken: input.payToken,
+    inputAmount: round(input.settleAmount / price, 9),
+    settleAmount: input.settleAmount,
+    settleToken: input.settleToken,
+    priceImpactBps: 12,
+  };
+}
+
+async function quoteJupiter(input, options) {
+  const inputToken = TOKENS[input.payToken];
+  const settleToken = TOKENS[input.settleToken];
+
+  if (!inputToken) throw new Error(`Jupiter quote token is not configured: ${input.payToken}`);
+  if (!settleToken) throw new Error(`Jupiter quote token is not configured: ${input.settleToken}`);
+
+  const url = new URL(options.jupiterQuoteUrl ?? "https://api.jup.ag/swap/v1/quote");
+  url.searchParams.set("inputMint", inputToken.mint);
+  url.searchParams.set("outputMint", settleToken.mint);
+  url.searchParams.set("amount", String(Math.round(input.settleAmount * 10 ** settleToken.decimals)));
+  url.searchParams.set("slippageBps", String(options.slippageBps ?? 50));
+  url.searchParams.set("swapMode", "ExactOut");
+
+  const apiKey = options.jupiterApiKey ?? process.env.JUPITER_API_KEY;
+  const response = await fetch(url, {
+    headers: apiKey ? { "x-api-key": apiKey } : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Jupiter quote failed: ${response.status} ${response.statusText}`);
+  }
+
+  const quote = await response.json();
+  return {
+    source: "jupiter_swap_exact_out",
+    inputToken: input.payToken,
+    inputAmount: Number(quote.inAmount) / 10 ** inputToken.decimals,
+    settleAmount: Number(quote.outAmount) / 10 ** settleToken.decimals,
+    settleToken: input.settleToken,
+    priceImpactBps: Math.round(Math.abs(Number(quote.priceImpactPct)) * 10_000),
+  };
+}
+
+function evaluateQuotePolicy(quote, policy) {
+  return [
+    policyCheck("quote_available", "pass", `${quote.source} quote is available`),
+    quote.settleToken === "USDC"
+      ? policyCheck("quote_settlement_token", "pass", "quote settles to USDC")
+      : policyCheck("quote_settlement_token", "reject", "quote does not settle to USDC"),
+    quote.priceImpactBps <= policy.maxPriceImpactBps
+      ? policyCheck(
+          "quote_price_impact",
+          "pass",
+          `quote price impact is ${quote.priceImpactBps} bps, within the ${policy.maxPriceImpactBps} bps policy limit`
+        )
+      : policyCheck(
+          "quote_price_impact",
+          policy.reviewHighPriceImpact ? "review" : "pass",
+          `quote price impact is ${quote.priceImpactBps} bps, above the ${policy.maxPriceImpactBps} bps policy limit`
+        ),
+  ];
+}
+
+function policyResultFromChecks(checks) {
+  const reasons = checks
+    .filter((check) => check.status === "review" || check.status === "reject")
+    .map((check) => check.message);
+  const hasReject = checks.some((check) => check.status === "reject");
+  const hasReview = checks.some((check) => check.status === "review");
+
+  if (hasReject) {
+    return { decision: "rejected", nextAction: "rejected", riskLevel: "high", reasons, checks };
+  }
+  if (hasReview) {
+    return {
+      decision: "review_required",
+      nextAction: "open_review",
+      riskLevel: "medium",
+      reasons,
+      checks,
+    };
+  }
+  return {
+    decision: "auto_pay",
+    nextAction: "ready_for_authorization",
+    riskLevel: "low",
+    reasons,
+    checks,
+  };
+}
+
+function saveIntent(intent, store) {
+  const dir = resolve(store ?? join(".jup-sh", "intents"));
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, `${intent.intentId}.json`), `${JSON.stringify(intent, null, 2)}\n`);
+}
+
+function loadIntent(intentId, store) {
+  const dir = resolve(store ?? join(".jup-sh", "intents"));
+  return JSON.parse(readFileSync(join(dir, `${intentId}.json`), "utf8"));
+}
+
+function listIntents(store) {
+  const dir = resolve(store ?? join(".jup-sh", "intents"));
+  if (!existsSync(dir)) return [];
+
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".json"))
+    .map((file) => JSON.parse(readFileSync(join(dir, file), "utf8")))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function printPolicy(policy) {
+  console.log("jup.sh policy");
+  console.log(`Max auto-pay amount: ${trimNumber(policy.maxAutoSettleUSDC)} USDC`);
+  console.log(`Max allowed amount: ${trimNumber(policy.maxAllowedSettleUSDC)} USDC`);
+  console.log(`Max price impact: ${policy.maxPriceImpactBps} bps`);
+  console.log(`Review high price impact: ${policy.reviewHighPriceImpact}`);
+  console.log(`Verified tokens: ${policy.verifiedTokens.join(", ")}`);
+  console.log(
+    `Trusted recipients: ${
+      policy.trustedRecipients.length ? policy.trustedRecipients.join(", ") : "(none)"
+    }`
+  );
+  console.log(`Review unknown recipients: ${policy.reviewUnknownRecipients}`);
+}
+
+function printIntent(intent, json) {
+  if (json) {
+    console.log(JSON.stringify(intent, null, 2));
+    return;
+  }
+
+  console.log(`Intent: ${intent.intentId}`);
+  console.log(`Decision: ${intent.decision}`);
+  console.log(`Next action: ${intent.nextAction}`);
+  console.log(`Agent: ${intent.agent}`);
+  console.log(`Pay token: ${intent.payToken}`);
+  console.log(`Settlement: ${trimNumber(intent.settlement.amount)} ${intent.settlement.token}`);
+  console.log(`Review: ${intent.reviewUrl}`);
+}
+
+function printHelp() {
+  console.log("jup-sh alpha CLI");
+  console.log("");
+  console.log("Commands:");
+  console.log("  pay --agent deepseek --token SOL --amount 20 --settle USDC [--json]");
+  console.log("  policy show [--json]");
+  console.log("  policy init [--force]");
+  console.log("  intent list [--json]");
+  console.log("  intent show <intent_id> [--json]");
+  console.log("  intent export <intent_id> [--payload-only]");
+}
+
+function exitCodeForDecision(decision) {
+  if (decision === "auto_pay") return 0;
+  if (decision === "review_required") return 2;
+  return 1;
+}
+
+function statusForDecision(decision) {
+  if (decision === "auto_pay") return "ready_for_authorization";
+  if (decision === "review_required") return "review_required";
+  return "rejected";
+}
+
+function policyCheck(name, status, message) {
+  return { name, status, message };
+}
+
+function hasFlag(args, name) {
+  return args.includes(`--${name}`);
+}
+
+function required(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${field} is required`);
+  }
+  return value.trim();
+}
+
+function positiveAmount(value, field) {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${field} must be a positive number`);
+  }
+  return value;
+}
+
+function normalizeToken(value) {
+  return required(value, "token").toUpperCase();
+}
+
+function toCamelCase(value) {
+  return value.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function trimNumber(value) {
+  return Number.isInteger(value) ? String(value) : String(value);
+}
+
+function round(value, decimals) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}

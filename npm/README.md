@@ -2,7 +2,7 @@
 
 Risk and settlement for Solana agent payments.
 
-This package is an alpha packaging prototype for the `jup-sh` CLI.
+This package is an alpha release for the `jup-sh` CLI.
 
 Current alpha status:
 
@@ -14,17 +14,28 @@ Current alpha status:
 - no swap execution
 - no custody
 
-The current wrapper is intended for repository-based alpha testing. It expects
-the Rust workspace to be available and shells out to:
+Install or run with `npx`:
 
 ```bash
-cargo run --quiet --
+npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
-Target command shape:
+The npm alpha is self-contained and runs on Node.js. It does not require the
+Rust workspace.
+
+Command shape:
 
 ```bash
 jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC --json
+```
+
+Useful commands:
+
+```bash
+jup-sh policy show
+jup-sh policy init
+jup-sh intent list
+jup-sh intent export intent_xxx
 ```
 
 The CLI JSON contract is documented in:

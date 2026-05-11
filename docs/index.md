@@ -7,8 +7,7 @@ description: Developer documentation for jup.sh.
 
 Risk and settlement for Solana agent payments.
 
-`jup.sh` is an early source-run developer alpha for agent-native payments on
-Solana.
+`jup.sh` is an early developer alpha for agent-native payments on Solana.
 
 ```txt
 Agents pay with any verified token.
@@ -42,17 +41,18 @@ Recommended order:
 5. [Risk Review Export Design](risk-review-export-design.md) - static review URL model.
 6. [SDK Technical Design](sdk-technical-design.md) - first TypeScript SDK surface.
 7. [0.1.0-alpha.1](releases/0.1.0-alpha.1.md) - SDK risk-layer checkpoint.
+8. [0.1.0-alpha.2](releases/0.1.0-alpha.2.md) - npm alpha checkpoint.
 
 ## Current Alpha
 
-The current checkpoint is `v0.1.0-alpha.1`.
+The current checkpoint is `v0.1.0-alpha.2`.
 
 The first milestone, `v0.1.0-alpha.0`, established the source-run CLI, JSON
 contract, local policy checks, Jupiter quote-only estimates, local intent
 storage, and static Risk Review export.
 
 The alpha.1 checkpoint focuses on the SDK risk layer and Risk Review
-explainability.
+explainability. The alpha.2 checkpoint adds the first public npm alpha package.
 
 It includes:
 
@@ -70,6 +70,7 @@ It includes:
 - SDK policy decision explanations for Risk Review and agent logs;
 - hosted Risk Review page policy explanations before raw policy evidence;
 - an agent-facing JSON contract;
+- a public `jup-sh` npm alpha package;
 - release checks for the alpha package shape.
 
 It does not include:
@@ -79,7 +80,7 @@ It does not include:
 - custody;
 - Solana Pay transaction request generation;
 - remote backend persistence;
-- a published npm package.
+- a published SDK package.
 
 ## Core Command
 
@@ -91,6 +92,12 @@ In source-run form:
 
 ```bash
 npm run cli:alpha -- pay --agent deepseek --token SOL --amount 20 --settle USDC
+```
+
+With the npm alpha:
+
+```bash
+npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 ## Product Boundary

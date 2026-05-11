@@ -2,6 +2,26 @@
 
 All notable changes to jup.sh will be documented in this file.
 
+## 0.1.0-alpha.2 - 2026-05-11
+
+### Added
+
+- Prepared the first public npm alpha package under `jup-sh`.
+- Added a self-contained Node.js CLI wrapper for `npx jup-sh@alpha`.
+- Documented the npm alpha command path:
+  - `npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC --json`
+- Kept the CLI alpha quote-only, local-intent-only, and policy-driven.
+
+### Not Included
+
+- No wallet signing.
+- No swap execution.
+- No Solana Pay transaction request generation.
+- No custody of funds.
+- No remote backend persistence.
+- No authentication.
+- No published SDK package yet.
+
 ## 0.1.0-alpha.1 - 2026-05-10
 
 ### Added

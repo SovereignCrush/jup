@@ -7,13 +7,13 @@ description: Release checklist for npm alpha package preparation.
 
 This checklist keeps the first npm release path boring and explicit.
 
-The current package prototype lives in:
+The current package lives in:
 
 ```txt
 npm/
 ```
 
-It is still private and should not be published yet.
+It is now prepared for the `0.1.0-alpha.2` npm alpha.
 
 ## Current Package Shape
 
@@ -32,13 +32,13 @@ jup-sh -> bin/jup-sh
 Current wrapper behavior:
 
 ```txt
-node wrapper -> cargo run --quiet -- ... -> Rust CLI
+node wrapper -> self-contained alpha CLI
 ```
 
-This is acceptable for local alpha validation, but not ideal for a public npm
-release because users would need Rust and the repository source tree.
+This is acceptable for the first npm alpha because users do not need Rust or a
+repository checkout. The npm alpha still does not move money.
 
-## Alpha 0 Dry Run
+## Alpha 2 Dry Run
 
 Run:
 
@@ -82,7 +82,7 @@ Confirm:
 - Risk Review export does not include private keys, signatures, swap
   transactions, or wallet secrets.
 - `CHANGELOG.md` has the release notes.
-- `docs/releases/0.1.0-alpha.0.md` matches the release scope.
+- `docs/releases/0.1.0-alpha.2.md` matches the release scope.
 - The GitHub release is marked as a pre-release.
 
 ## GitHub Release Draft
@@ -93,49 +93,37 @@ release:check` has passed.
 Recommended tag:
 
 ```txt
-v0.1.0-alpha.0
+v0.1.0-alpha.2
 ```
 
 Recommended title:
 
 ```txt
-jup.sh 0.1.0-alpha.0
+jup.sh 0.1.0-alpha.2
 ```
 
 Release notes source:
 
 ```txt
-docs/releases/0.1.0-alpha.0.md
+docs/releases/0.1.0-alpha.2.md
 ```
 
 Before creating the tag:
 
 - run the required checks above;
 - confirm the working tree is clean;
-- confirm `npm/package.json` still has `"private": true`;
-- confirm no npm package has been published;
-- confirm the release is described as source-run / developer alpha;
+- confirm `npm/package.json` does not have `"private": true`;
+- confirm the npm alpha package uses `0.1.0-alpha.2`;
+- confirm the release is described as quote-only / developer alpha;
 - mark the GitHub release as pre-release.
 
 ## Before Publishing to npm
 
-Decide the packaging model:
-
-1. prebuilt Rust binary downloaded by the npm wrapper;
-2. prebuilt Rust binaries bundled into npm releases;
-3. source-run wrapper for a very early developer alpha.
-
-Preferred long-term path: prebuilt binary download.
-
-If publishing an early source-run alpha, the README must clearly say users need:
-
-- Node.js;
-- Rust toolchain;
-- repository source checkout.
+The current alpha package is a self-contained Node.js CLI. Users need Node.js,
+but they do not need Rust or a repository checkout.
 
 Before `npm publish`:
 
-- remove `"private": true` from `npm/package.json`;
 - keep `publishConfig.tag` or publish with `--tag alpha`;
 - run `npm publish --dry-run` from `npm/`;
 - confirm npm account 2FA/provenance settings;

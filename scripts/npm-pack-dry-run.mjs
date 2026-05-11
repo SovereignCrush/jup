@@ -61,8 +61,16 @@ if (packageJson.bin?.["jup-sh"] !== "bin/jup-sh") {
   throw new Error("npm package must expose bin/jup-sh as jup-sh");
 }
 
-if (packageJson.private !== true) {
-  throw new Error("alpha package prototype should remain private until publish is intentional");
+if (packageJson.private === true) {
+  throw new Error("npm alpha package is still private");
+}
+
+if (packageJson.version !== "0.1.0-alpha.2") {
+  throw new Error(`unexpected npm alpha version: ${packageJson.version}`);
+}
+
+if (packageJson.publishConfig?.tag !== "alpha") {
+  throw new Error("npm alpha package must publish with the alpha tag");
 }
 
 console.log("npm alpha pack dry-run: ok");
