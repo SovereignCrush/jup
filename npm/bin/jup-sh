@@ -169,9 +169,11 @@ function runInit(args) {
 function runPolicy(args) {
   const [subcommand, ...rest] = args;
   const options = parseOptions(rest);
+  const config = loadConfig(options.config);
+  const policyPath = options.policy ?? (config.loaded ? config.policyPath : "jup.policy.json");
 
   if (subcommand === "show") {
-    const policy = loadPolicy(options.policy);
+    const policy = loadPolicy(options.policy ?? (config.loaded ? config.policyPath : undefined));
     if (options.json) {
       console.log(JSON.stringify(policy, null, 2));
     } else {
@@ -190,7 +192,39 @@ function runPolicy(args) {
     return;
   }
 
-  throw new Error("policy command must be show or init");
+  if (subcommand === "trust") {
+    const recipient = required(firstPositional(rest), "recipient");
+    const policy = loadPolicy(policyPath);
+    if (!policy.trustedRecipients.includes(recipient)) {
+      policy.trustedRecipients.push(recipient);
+      policy.trustedRecipients.sort();
+      writeJsonFile(policyPath, policy);
+    }
+    printPolicyMutation("trusted recipient", recipient, policyPath, policy, options.json);
+    return;
+  }
+
+  if (subcommand === "untrust") {
+    const recipient = required(firstPositional(rest), "recipient");
+    const policy = loadPolicy(policyPath);
+    policy.trustedRecipients = policy.trustedRecipients.filter((item) => item !== recipient);
+    writeJsonFile(policyPath, policy);
+    printPolicyMutation("removed trusted recipient", recipient, policyPath, policy, options.json);
+    return;
+  }
+
+  if (subcommand === "set") {
+    const values = positionals(rest);
+    const field = values[0];
+    const rawValue = values[1];
+    const policy = loadPolicy(policyPath);
+    setPolicyField(policy, field, rawValue);
+    writeJsonFile(policyPath, policy);
+    printPolicyMutation("set policy field", `${field}=${rawValue}`, policyPath, policy, options.json);
+    return;
+  }
+
+  throw new Error("policy command must be show, init, trust, untrust, or set");
 }
 
 function runIntent(args) {
@@ -268,6 +302,24 @@ function parseOptions(args) {
   return options;
 }
 
+function positionals(args) {
+  const values = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const item = args[index];
+    if (item.startsWith("--")) {
+      const next = args[index + 1];
+      if (next && !next.startsWith("--")) index += 1;
+      continue;
+    }
+    values.push(item);
+  }
+  return values;
+}
+
+function firstPositional(args) {
+  return positionals(args)[0];
+}
+
 function parseSettlement(options) {
   const settle = Array.isArray(options.settle) ? options.settle : [];
 
@@ -336,6 +388,77 @@ function assertWritable(path, force) {
 
 function writeJsonFile(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function setPolicyField(policy, field, rawValue) {
+  const normalizedField = normalizePolicyField(required(field, "policy field"));
+  if (rawValue === undefined) {
+    throw new Error("policy value is required");
+  }
+
+  if (normalizedField === "maxAutoSettleUSDC") {
+    policy.maxAutoSettleUSDC = positiveAmount(Number(rawValue), "max auto amount");
+    return;
+  }
+  if (normalizedField === "maxAllowedSettleUSDC") {
+    policy.maxAllowedSettleUSDC = positiveAmount(Number(rawValue), "max allowed amount");
+    return;
+  }
+  if (normalizedField === "maxPriceImpactBps") {
+    policy.maxPriceImpactBps = nonNegativeInteger(Number(rawValue), "max price impact bps");
+    return;
+  }
+  if (normalizedField === "reviewHighPriceImpact") {
+    policy.reviewHighPriceImpact = parseBoolean(rawValue, "review high price impact");
+    return;
+  }
+  if (normalizedField === "reviewUnknownRecipients") {
+    policy.reviewUnknownRecipients = parseBoolean(rawValue, "review unknown recipients");
+    return;
+  }
+
+  throw new Error(`unsupported policy field: ${field}`);
+}
+
+function normalizePolicyField(field) {
+  const fields = new Map([
+    ["max-auto", "maxAutoSettleUSDC"],
+    ["max-auto-settle", "maxAutoSettleUSDC"],
+    ["maxAutoSettleUSDC", "maxAutoSettleUSDC"],
+    ["max-allowed", "maxAllowedSettleUSDC"],
+    ["max-allowed-settle", "maxAllowedSettleUSDC"],
+    ["maxAllowedSettleUSDC", "maxAllowedSettleUSDC"],
+    ["max-price-impact", "maxPriceImpactBps"],
+    ["max-price-impact-bps", "maxPriceImpactBps"],
+    ["maxPriceImpactBps", "maxPriceImpactBps"],
+    ["review-high-price-impact", "reviewHighPriceImpact"],
+    ["reviewHighPriceImpact", "reviewHighPriceImpact"],
+    ["review-unknown-recipients", "reviewUnknownRecipients"],
+    ["reviewUnknownRecipients", "reviewUnknownRecipients"],
+  ]);
+  return fields.get(field) ?? field;
+}
+
+function parseBoolean(value, field) {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  throw new Error(`${field} must be true or false`);
+}
+
+function nonNegativeInteger(value, field) {
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${field} must be a non-negative integer`);
+  }
+  return value;
+}
+
+function printPolicyMutation(action, value, path, policy, json) {
+  if (json) {
+    console.log(JSON.stringify({ action, value, path, policy }, null, 2));
+    return;
+  }
+  console.log(`${action}: ${value}`);
+  console.log(`updated ${path}`);
 }
 
 function clonePolicy(policy) {
@@ -562,6 +685,9 @@ function printHelp() {
   console.log("  pay --agent deepseek --token SOL --amount 20 --settle USDC [--json]");
   console.log("  policy show [--json]");
   console.log("  policy init [--force]");
+  console.log("  policy trust <recipient>");
+  console.log("  policy untrust <recipient>");
+  console.log("  policy set <field> <value>");
   console.log("  intent list [--json]");
   console.log("  intent show <intent_id> [--json]");
   console.log("  intent export <intent_id> [--payload-only]");

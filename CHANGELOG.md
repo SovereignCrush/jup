@@ -2,6 +2,30 @@
 
 All notable changes to jup.sh will be documented in this file.
 
+## 0.1.0-alpha.4 - 2026-05-11
+
+### Added
+
+- Added policy mutation commands for local risk tuning:
+  - `jup-sh policy trust <recipient>`
+  - `jup-sh policy untrust <recipient>`
+  - `jup-sh policy set <field> <value>`
+- Added short aliases for common policy fields such as `max-auto`,
+  `max-allowed`, and `max-price-impact`.
+- Updated agent integration docs to show how a reviewed payment can become an
+  `auto_pay` candidate after trusting a recipient and raising local limits.
+- Extended alpha smoke tests to cover policy mutation commands.
+
+### Not Included
+
+- No wallet signing.
+- No swap execution.
+- No Solana Pay transaction request generation.
+- No custody of funds.
+- No remote backend persistence.
+- No authentication.
+- No published SDK package yet.
+
 ## 0.1.0-alpha.3 - 2026-05-11
 
 ### Added

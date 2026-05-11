@@ -46,10 +46,11 @@ Recommended order:
 8. [0.1.0-alpha.1](releases/0.1.0-alpha.1.md) - SDK risk-layer checkpoint.
 9. [0.1.0-alpha.2](releases/0.1.0-alpha.2.md) - npm alpha checkpoint.
 10. [0.1.0-alpha.3](releases/0.1.0-alpha.3.md) - CLI init checkpoint.
+11. [0.1.0-alpha.4](releases/0.1.0-alpha.4.md) - policy tuning checkpoint.
 
 ## Current Alpha
 
-The current checkpoint is `v0.1.0-alpha.3`.
+The current checkpoint is `v0.1.0-alpha.4`.
 
 The first milestone, `v0.1.0-alpha.0`, established the source-run CLI, JSON
 contract, local policy checks, Jupiter quote-only estimates, local intent
@@ -58,6 +59,7 @@ storage, and static Risk Review export.
 The alpha.1 checkpoint focuses on the SDK risk layer and Risk Review
 explainability. The alpha.2 checkpoint adds the first public npm alpha package.
 The alpha.3 checkpoint adds the first-run `jup-sh init` workflow.
+The alpha.4 checkpoint adds local policy tuning commands.
 
 It includes:
 
@@ -67,6 +69,7 @@ It includes:
 - optional Jupiter quote-only settlement estimates;
 - local intent storage;
 - local workspace initialization with `jup-sh init`;
+- local policy tuning with `policy trust`, `policy untrust`, and `policy set`;
 - Risk Review URL export;
 - hosted static Risk Review rendering;
 - source-only TypeScript SDK helpers for payment intents, Jupiter quote-only

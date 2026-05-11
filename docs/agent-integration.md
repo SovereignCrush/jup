@@ -94,7 +94,48 @@ Exit codes:
 | `2` | `review_required` | Return or open `reviewUrl`. This is a controlled outcome. |
 | `1` | `rejected` or command failure | Stop the payment flow. |
 
-## 3. Handle Review
+## 3. Tune Local Policy
+
+The default policy is intentionally conservative. Unknown recipients and
+amounts above the auto-pay limit require review.
+
+Trust a known API or vendor recipient:
+
+```bash
+npx jup-sh@alpha policy trust api.vendor.example
+```
+
+Raise the auto-pay limit:
+
+```bash
+npx jup-sh@alpha policy set max-auto 10
+```
+
+Now a small payment to the trusted recipient can stay on the automatic path:
+
+```bash
+npx jup-sh@alpha pay \
+  --agent deepseek \
+  --token SOL \
+  --amount 6 \
+  --settle USDC \
+  --recipient api.vendor.example \
+  --json
+```
+
+This should return:
+
+```json
+{
+  "decision": "auto_pay",
+  "nextAction": "ready_for_authorization"
+}
+```
+
+The current alpha still stops before signing. `auto_pay` means the intent is
+inside local policy and ready for a future authorization layer.
+
+## 4. Handle Review
 
 When policy requires review, the JSON output includes:
 
@@ -109,7 +150,7 @@ When policy requires review, the JSON output includes:
 The agent should return that URL to the user or open it in the surrounding app.
 It should not bypass policy.
 
-## 4. Export A Review Payload
+## 5. Export A Review Payload
 
 Saved intents can be exported as a static Risk Review URL:
 
@@ -133,4 +174,3 @@ This lets a local CLI or SDK hand off review evidence without a jup.sh backend.
 - No Solana Pay transaction request generation.
 - No remote backend persistence.
 - No authentication.
-

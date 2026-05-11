@@ -37,6 +37,8 @@ Useful commands:
 jup-sh init
 jup-sh policy show
 jup-sh policy init
+jup-sh policy trust api.vendor.example
+jup-sh policy set max-auto 10
 jup-sh intent list
 jup-sh intent export intent_xxx
 ```

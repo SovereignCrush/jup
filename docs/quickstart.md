@@ -120,6 +120,18 @@ jup.policy.json
 
 Use `--force` if you intentionally want to overwrite it.
 
+Trust a known API or vendor recipient:
+
+```bash
+npm run cli:alpha -- policy trust api.vendor.example
+```
+
+Raise the auto-pay limit:
+
+```bash
+npm run cli:alpha -- policy set max-auto 10
+```
+
 ## 3. Create A Payment Intent
 
 ```bash

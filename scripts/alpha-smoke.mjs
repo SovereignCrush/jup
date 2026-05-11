@@ -156,6 +156,22 @@ try {
     throw new Error("policy show did not print policy output");
   }
 
+  console.log("alpha smoke: policy trust");
+  const trustedPolicy = JSON.parse(
+    run(["policy", "trust", "api.vendor.example", "--policy", policyPath, "--json"])
+  );
+  if (!trustedPolicy.policy.trustedRecipients.includes("api.vendor.example")) {
+    throw new Error("policy trust did not add recipient");
+  }
+
+  console.log("alpha smoke: policy set");
+  const updatedPolicy = JSON.parse(
+    run(["policy", "set", "max-auto", "10", "--policy", policyPath, "--json"])
+  );
+  if (updatedPolicy.policy.maxAutoSettleUSDC !== 10) {
+    throw new Error("policy set did not update maxAutoSettleUSDC");
+  }
+
   writeFileSync(
     policyPath,
     JSON.stringify(

@@ -155,6 +155,7 @@ V1 includes:
 - Alpha.1 release notes in `docs/releases/0.1.0-alpha.1.md`.
 - Alpha.2 npm release notes in `docs/releases/0.1.0-alpha.2.md`.
 - Alpha.3 init release notes in `docs/releases/0.1.0-alpha.3.md`.
+- Alpha.4 policy tuning release notes in `docs/releases/0.1.0-alpha.4.md`.
 - GitHub Pages developer docs in `docs/`.
 - Jupiter quote-only design in `docs/jupiter-quote-design.md`.
 - Risk Review export design in `docs/risk-review-export-design.md`.
