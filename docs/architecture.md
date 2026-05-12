@@ -10,7 +10,8 @@ description: Technical architecture and design diagrams for jup.sh.
 The design goal is narrow: an agent can create a payment intent, but policy
 decides whether that intent can continue automatically, must be reviewed by a
 human, or should be rejected. Jupiter is used for token-to-USDC settlement. The
-current alpha stops before signing or moving funds.
+current 1.0 release can build Jupiter swap transactions and execute them from
+the user's machine with an explicit local keypair.
 
 ## Product Boundary
 
@@ -43,14 +44,14 @@ and settlement context, then returns a deterministic next action.
 
 ## Layered Architecture
 
-The system is split into five layers. The alpha currently implements the CLI,
-core policy engine, quote abstraction, local intent store, and static Risk
-Review rendering. The Solana transaction layer is intentionally future work.
+The system is split into five layers. The current release implements the CLI,
+core policy engine, quote abstraction, local intent store, static Risk Review
+rendering, Solana Pay transaction requests, and local CLI execution.
 
 ```mermaid
 flowchart TB
   subgraph Interface["Interface layer"]
-    CLI["CLI<br/>npm alpha + source-run"]
+    CLI["CLI<br/>npm + source-run"]
     SDK["SDK<br/>source-only"]
     ReviewUI["Risk Review UI<br/>hosted static page"]
   end
@@ -63,8 +64,8 @@ flowchart TB
   end
 
   subgraph Settlement["Settlement layer"]
-    Jupiter["Jupiter API<br/>quote-only today"]
-    TxRequest["Solana Pay transaction request<br/>planned"]
+    Jupiter["Jupiter API<br/>quote + swap"]
+    TxRequest["Solana Pay transaction request"]
   end
 
   subgraph State["State layer"]
@@ -73,8 +74,8 @@ flowchart TB
   end
 
   subgraph Authorization["Authorization layer"]
-    Wallet["local wallet / signer<br/>planned"]
-    Solana["Solana network<br/>planned execution"]
+    Wallet["local wallet / signer"]
+    Solana["Solana network"]
   end
 
   CLI --> Intent
@@ -83,8 +84,8 @@ flowchart TB
   Quote --> Jupiter
   Result --> LocalStore
   Result --> ReviewUI
-  Result -. planned .-> TxRequest
-  TxRequest -. planned .-> Wallet -. planned .-> Solana
+  Result --> TxRequest
+  TxRequest --> Wallet --> Solana
   RemoteStore -. planned .-> ReviewUI
 ```
 
@@ -92,9 +93,9 @@ This structure lets the CLI and SDK share the same core behavior. The interface
 may change, but the policy result, JSON contract, and settlement assumptions
 should remain stable.
 
-## Current Alpha Runtime Flow
+## Current Runtime Flow
 
-The alpha flow is local and available through `npx jup-sh@alpha`. It is useful
+The CLI flow is local and available through `npx jup-sh`. It is useful
 because it validates the contract an agent would actually consume: command
 input, structured output, exit codes, policy checks, and a review URL when
 needed.
@@ -123,9 +124,9 @@ sequenceDiagram
   CLI-->>Review: review URL when policy requires it
 ```
 
-The alpha intentionally does **not** submit a swap, generate a real transaction
-request, or ask a wallet to sign. That keeps the first milestone focused on the
-agent contract and risk boundary.
+The server transaction request path creates an unsigned Jupiter swap
+transaction for wallet signing. The CLI execution path signs and submits only
+when the user provides a local keypair.
 
 ## Policy Decision Model
 
@@ -211,9 +212,59 @@ the reasons and checks that made review necessary.
 Jupiter is the settlement primitive. The payer should be able to use any
 verified token; the recipient should receive USDC.
 
-Today this is quote-only. The CLI can ask Jupiter for route estimates and use
-those estimates in policy checks. Future versions can use the same route
-context to build a transaction request.
+The CLI can ask Jupiter for ExactOut route quotes and preserve that quote
+response for transaction creation. The same route context is used to build a
+Solana Pay transaction request or a local CLI execution transaction.
+
+The wallet-facing boundary is documented in
+[Transaction Request Skeleton Design](transaction-request-skeleton-design.md).
+
+The local prototype server also exposes a read-only Intent API for status
+inspection:
+
+```txt
+GET /api/intents
+GET /api/intents/:intentId
+GET /api/intents/:intentId/status
+GET /api/intents/:intentId/events
+GET /api/intents/:intentId/receipt
+POST /api/intents/:intentId/review
+GET /api/transaction-requests/:intentId
+POST /api/transaction-requests/:intentId
+GET /api/transaction-requests/:intentId/preflight
+```
+
+This API reads and updates the same local intent store as the CLI. Review
+approval/rejection is local. Transaction request POST validates request shape,
+intent readiness, request token, quote freshness, executable Jupiter quote
+state, and recipient token account before returning a signable transaction.
+
+Preflight exposes the same transaction request gate without asking a wallet to
+POST an account first.
+
+Receipt state is also explicit. Until the system observes a confirmed
+settlement, `GET /api/intents/:intentId/receipt` returns an unavailable receipt
+scaffold rather than claiming payment completion.
+
+Intent events provide a local audit scaffold for review decisions and
+transaction request attempts. They are designed to be replaced or backed by a
+hosted authenticated event log in a production version.
+
+Intent expiry is a replay-control scaffold. New local intents include
+`expiresAt`; expired intents remain readable but cannot be approved or used for
+transaction request creation.
+
+Transaction request URLs also include a local opaque request token. The current
+draft runtime rejects transaction request metadata and POST calls when the token
+is missing or incorrect.
+
+The transaction request POST gate also binds the first valid wallet account to
+the local intent. Later attempts with a different account are rejected before
+any future transaction construction can occur.
+
+Quote freshness is a separate transaction-construction gate. Draft intents carry
+quote capture and expiry metadata; stale quotes are blocked before transaction
+request creation.
 
 ```mermaid
 flowchart LR
@@ -243,6 +294,7 @@ usable today and what is still design work.
 | Agent contract | JSON output and exit codes | SDK + CLI contract shared by agents |
 | Policy | Deterministic local checks | Configurable policy profiles |
 | Jupiter | Quote-only estimates | Transaction route construction |
+| Transaction request | Draft skeleton only | Solana Pay request endpoint |
 | Risk Review | Static hosted page | Review workflow with durable state |
 | Signing | Not implemented | Local wallet/user approval boundary |
 | Settlement | Not executed | USDC settlement through Solana transaction |
@@ -276,6 +328,10 @@ flowchart LR
 
 The product should stay command-first. UI exists to review risk and explain
 policy decisions, not to become another manual payment dashboard.
+
+The transaction request step should follow the skeleton contract first, then
+implementation can add server-side persistence, route construction, and wallet
+handoff without changing the agent-facing intent model.
 
 ## Engineering Principles
 

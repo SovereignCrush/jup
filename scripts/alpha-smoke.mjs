@@ -87,6 +87,8 @@ function assertQuote(quote, label) {
   assertNumber(quote.settleAmount, `${label}.settleAmount`);
   assertString(quote.settleToken, `${label}.settleToken`);
   assertNumber(quote.priceImpactBps, `${label}.priceImpactBps`);
+  assertString(quote.capturedAt, `${label}.capturedAt`);
+  assertString(quote.expiresAt, `${label}.expiresAt`);
 }
 
 function assertPayIntentContract(intent, expected) {
@@ -99,6 +101,7 @@ function assertPayIntentContract(intent, expected) {
   assertString(intent.agent, "agent");
   assertString(intent.payToken, "payToken");
   assertNullableString(intent.recipient, "recipient");
+  assertNullableString(intent.recipientTokenAccount, "recipientTokenAccount");
   assertNullableString(intent.reference, "reference");
 
   assertObject(intent.settlement, "settlement");
@@ -126,6 +129,12 @@ function assertPayIntentContract(intent, expected) {
   assertString(intent.reviewUrl, "reviewUrl");
   assertString(intent.reviewCommand, "reviewCommand");
   assertString(intent.createdAt, "createdAt");
+  assertString(intent.expiresAt, "expiresAt");
+  assertObject(intent.transactionRequest, "transactionRequest");
+  assertString(intent.transactionRequest.requestToken, "transactionRequest.requestToken");
+  if (intent.expired !== undefined && typeof intent.expired !== "boolean") {
+    throw new Error("expired must be a boolean when present");
+  }
 
   for (const [field, value] of Object.entries(expected)) {
     if (intent[field] !== value) {
@@ -270,7 +279,7 @@ try {
   if (!intent.reviewUrl.includes(`#intent=`)) {
     throw new Error("review-required pay --json must include a full review URL payload");
   }
-  if (intent.reviewCommand !== `npx jup-sh@alpha review ${intentId}`) {
+  if (intent.reviewCommand !== `npx jup-sh review ${intentId}`) {
     throw new Error(`unexpected reviewCommand: ${intent.reviewCommand}`);
   }
 
@@ -309,6 +318,44 @@ try {
     throw new Error("intent list did not include the created intent");
   }
 
+  console.log("alpha smoke: intent status");
+  const status = JSON.parse(run(["intent", "status", intentId, "--store", store, "--json"]));
+  if (
+    status.intentId !== intentId ||
+    status.status !== "review_required" ||
+    status.decision !== "review_required" ||
+    status.nextAction !== "open_review" ||
+    status.expired !== false ||
+    status.quoteExpired !== false
+  ) {
+    throw new Error("intent status --json did not return the expected lifecycle state");
+  }
+  if (status.quote) {
+    throw new Error("intent status --json must return a summary, not the full intent body");
+  }
+
+  console.log("alpha smoke: intent preflight");
+  const blockedPreflight = JSON.parse(run(["intent", "preflight", intentId, "--store", store, "--json"]));
+  if (
+    blockedPreflight.status !== "blocked_by_review" ||
+    blockedPreflight.transactionImplemented !== true ||
+    blockedPreflight.canRequestTransaction !== false ||
+    !blockedPreflight.endpoint.includes("request=")
+  ) {
+    throw new Error("intent preflight --json did not report review gating");
+  }
+
+  console.log("alpha smoke: intent receipt");
+  const receipt = JSON.parse(run(["intent", "receipt", intentId, "--store", store, "--json"]));
+  if (
+    receipt.intentId !== intentId ||
+    receipt.available !== false ||
+    receipt.transactionImplemented !== false ||
+    receipt.receipt !== null
+  ) {
+    throw new Error("intent receipt --json did not report unavailable receipt state");
+  }
+
   console.log("alpha smoke: intent export");
   const payload = run(["intent", "export", intentId, "--store", store, "--payload-only"]).trim();
   if (payload.length < 100) {
@@ -329,8 +376,98 @@ try {
   if (!reviewJson.reviewUrl.includes("#intent=") || reviewJson.payload.length < 100) {
     throw new Error("review --json did not include review URL and payload");
   }
-  if (reviewJson.reviewCommand !== `npx jup-sh@alpha review ${intentId}`) {
+  if (reviewJson.reviewCommand !== `npx jup-sh review ${intentId}`) {
     throw new Error(`review --json returned unexpected reviewCommand: ${reviewJson.reviewCommand}`);
+  }
+
+  console.log("alpha smoke: intent approve");
+  const approvedStatus = JSON.parse(
+    run([
+      "intent",
+      "approve",
+      intentId,
+      "--store",
+      store,
+      "--reviewer",
+      "alpha-smoke",
+      "--reason",
+      "known vendor",
+      "--json",
+    ])
+  );
+  if (
+    approvedStatus.status !== "ready_for_authorization" ||
+    approvedStatus.nextAction !== "ready_for_authorization" ||
+    approvedStatus.reviewDecision?.decision !== "approved" ||
+    approvedStatus.reviewDecision?.reviewer !== "alpha-smoke"
+  ) {
+    throw new Error("intent approve --json did not persist approval state");
+  }
+  const approvedEvents = JSON.parse(run(["intent", "events", intentId, "--store", store, "--json"]));
+  if (
+    approvedEvents.intentId !== intentId ||
+    approvedEvents.events.length !== 1 ||
+    approvedEvents.events[0].type !== "review.approved"
+  ) {
+    throw new Error("intent events --json did not include approval event");
+  }
+  const readyPreflight = JSON.parse(run(["intent", "preflight", intentId, "--store", store, "--json"]));
+  if (
+    readyPreflight.status !== "blocked_quote_not_executable" ||
+    readyPreflight.transactionImplemented !== true ||
+    readyPreflight.canRequestTransaction !== false
+  ) {
+    throw new Error("intent preflight --json did not report executable quote gating");
+  }
+
+  console.log("alpha smoke: intent reject");
+  const rejectIntent = JSON.parse(
+    run(
+      [
+        "pay",
+        "--agent",
+        "deepseek",
+        "--token",
+        "SOL",
+        "--amount",
+        "20",
+        "--settle",
+        "USDC",
+        "--store",
+        store,
+        "--json",
+      ],
+      2
+    )
+  );
+  const rejectedStatus = JSON.parse(
+    run([
+      "intent",
+      "reject",
+      rejectIntent.intentId,
+      "--store",
+      store,
+      "--reviewer",
+      "alpha-smoke",
+      "--reason",
+      "too risky",
+      "--json",
+    ])
+  );
+  if (
+    rejectedStatus.status !== "rejected" ||
+    rejectedStatus.nextAction !== "rejected" ||
+    rejectedStatus.reviewDecision?.decision !== "rejected" ||
+    rejectedStatus.reviewDecision?.reason !== "too risky"
+  ) {
+    throw new Error("intent reject --json did not persist rejection state");
+  }
+  const rejectedEvents = JSON.parse(run(["intent", "events", rejectIntent.intentId, "--store", store, "--json"]));
+  if (
+    rejectedEvents.events.length !== 1 ||
+    rejectedEvents.events[0].type !== "review.rejected"
+  ) {
+    throw new Error("intent events --json did not include rejection event");
   }
 
   console.log(`alpha smoke: ok (${intentId})`);

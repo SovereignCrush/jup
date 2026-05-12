@@ -2,6 +2,87 @@
 
 All notable changes to jup.sh will be documented in this file.
 
+## 1.0.0 - 2026-05-12
+
+### Added
+
+- Added Transaction Request Skeleton design docs for the future Solana Pay
+  wallet boundary.
+- Documented why the transaction request work remains a skeleton, the planned
+  GET/POST endpoint shape, future CLI output shape, and safety boundaries.
+- Added `docs/complete-version-roadmap.md` to track the remaining path from
+  alpha to authorization, settlement, confirmation, and receipt.
+- Added draft `docs/releases/0.1.0-alpha.8.md` notes for the transaction
+  request skeleton design checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.9.md` notes for the read-only Intent
+  API and status model checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.10.md` notes for the persisted local
+  review decision checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.11.md` notes for the transaction
+  request runtime gate checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.12.md` notes for the transaction
+  request preflight checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.13.md` notes for the receipt scaffold
+  checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.14.md` notes for the intent event log
+  checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.15.md` notes for the intent expiry and
+  replay gate checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.16.md` notes for the transaction
+  request token gate checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.17.md` notes for the wallet account
+  binding checkpoint.
+- Added draft `docs/releases/0.1.0-alpha.18.md` notes for the quote freshness
+  gate checkpoint.
+- Added a local read-only Intent API for listing intents, reading an intent,
+  and fetching lifecycle status.
+- Added `jup-sh intent status <intent_id> --json` for the same lifecycle
+  summary without returning the full intent body.
+- Added local review decision persistence through
+  `POST /api/intents/:intentId/review`, `jup-sh intent approve`, and
+  `jup-sh intent reject`.
+- Added transaction request endpoint gates for metadata, wallet account
+  validation, review gating, and explicit `transaction_not_implemented`
+  responses.
+- Added transaction request preflight through
+  `GET /api/transaction-requests/:intentId/preflight` and
+  `jup-sh intent preflight`.
+- Added unavailable receipt scaffold through `GET /api/intents/:intentId/receipt`
+  and `jup-sh intent receipt`.
+- Added local intent events through `GET /api/intents/:intentId/events` and
+  `jup-sh intent events`.
+- Added `expiresAt` and `expired` status fields, plus expiry gates for review
+  decisions and transaction request creation.
+- Added local transaction request tokens and token validation for transaction
+  request metadata and POST paths.
+- Added wallet account binding and account mismatch refusal for transaction
+  request POST attempts.
+- Added quote capture/expiry metadata and stale quote refusal for transaction
+  request creation.
+- Added executable Jupiter quote preservation for `--quote-provider jupiter`.
+- Added `--recipient-token-account` to payment intents for USDC settlement
+  delivery.
+- Added real Jupiter swap transaction creation in
+  `POST /api/transaction-requests/:intentId`.
+- Added `jup-sh intent execute <intent_id> --keypair ...` for local signing,
+  RPC submission, confirmation, and receipt persistence.
+- Added local execution smoke coverage for keypair signing.
+- Added server API smoke coverage and wired it into the release gate.
+
+### Changed
+
+- Updated README, npm README, website, and docs for the 1.0 real execution
+  boundary.
+
+### Not Included
+
+- No custody of funds.
+- No hosted private-key handling.
+- No server-side signing.
+- No remote backend persistence.
+- No authentication.
+- No published SDK package yet.
+
 ## 0.1.0-alpha.7 - 2026-05-11
 
 ### Added

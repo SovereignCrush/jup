@@ -398,5 +398,7 @@ Once the local SDK surface is stable:
 
 1. Decide whether npm package export should include CLI, SDK, or separate
    packages.
-2. Add transaction request creation only after policy and quote behavior are
-   stable.
+2. Align future transaction request helpers with
+   [Transaction Request Skeleton Design](transaction-request-skeleton-design.md).
+3. Add transaction request creation only after policy, quote behavior, and
+   review handoff are stable.

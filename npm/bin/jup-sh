@@ -21,6 +21,8 @@ const DEFAULT_CONFIG = {
   policyPath: "jup.policy.json",
   intentStore: ".jup-sh/intents",
   quoteProvider: "mock",
+  intentTtlMinutes: 15,
+  quoteTtlMinutes: 2,
 };
 
 const MOCK_PRICES_USDC = {
@@ -79,7 +81,7 @@ async function main() {
   }
 
   if (command === "intent") {
-    runIntent(args);
+    await runIntent(args);
     return;
   }
 
@@ -108,6 +110,7 @@ async function runPay(args) {
     settleAmount,
     settleToken: normalizeToken(settleToken),
     recipient: options.recipient ?? null,
+    recipientTokenAccount: options.recipientTokenAccount ?? null,
     reference: options.reference ?? null,
   };
 
@@ -121,17 +124,27 @@ async function runPay(args) {
     : prePolicy;
   const intentId = `intent_${randomUUID().replaceAll("-", "")}`;
   const reviewBaseUrl = (effectiveOptions.reviewBaseUrl ?? DEFAULT_CONFIG.reviewBaseUrl).replace(/\/+$/, "");
+  const createdAt = new Date();
+  const transactionRequestToken = randomUUID().replaceAll("-", "");
+  const quoteWithFreshness = quote
+    ? {
+        ...quote,
+        capturedAt: createdAt.toISOString(),
+        expiresAt: expiresAtFor(createdAt, effectiveOptions.quoteTtlMinutes).toISOString(),
+      }
+    : null;
   const intent = {
     intentId,
     agent: input.agent,
     payToken: input.payToken,
     recipient: input.recipient,
+    recipientTokenAccount: input.recipientTokenAccount,
     reference: input.reference,
     settlement: {
       amount: input.settleAmount,
       token: input.settleToken,
     },
-    quote,
+    quote: quoteWithFreshness,
     status: statusForDecision(finalResult.decision),
     decision: finalResult.decision,
     nextAction: finalResult.nextAction,
@@ -140,7 +153,11 @@ async function runPay(args) {
     policyChecks: finalResult.checks,
     reviewUrl: `${reviewBaseUrl}/pay/${intentId}`,
     reviewCommand: buildReviewCommand(intentId),
-    createdAt: new Date().toISOString(),
+    transactionRequest: {
+      requestToken: transactionRequestToken,
+    },
+    createdAt: createdAt.toISOString(),
+    expiresAt: expiresAtFor(createdAt, effectiveOptions.intentTtlMinutes).toISOString(),
   };
 
   saveIntent(intent, effectiveOptions.store);
@@ -240,7 +257,7 @@ function runPolicy(args) {
   throw new Error("policy command must be show, init, trust, untrust, or set");
 }
 
-function runIntent(args) {
+async function runIntent(args) {
   const [subcommand, ...rest] = args;
   const options = parseOptions(rest);
   const config = loadConfig(options.config);
@@ -270,13 +287,94 @@ function runIntent(args) {
     return;
   }
 
+  if (subcommand === "status") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
+    const status = intentStatus(intent);
+    if (options.json) {
+      console.log(JSON.stringify(status, null, 2));
+    } else {
+      printIntentStatus(status);
+    }
+    return;
+  }
+
+  if (subcommand === "preflight") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
+    const baseUrl = (effectiveOptions.reviewBaseUrl ?? DEFAULT_CONFIG.reviewBaseUrl).replace(/\/+$/, "");
+    const preflight = transactionRequestPreflight(intent, baseUrl);
+    if (options.json) {
+      console.log(JSON.stringify(preflight, null, 2));
+    } else {
+      printTransactionRequestPreflight(preflight);
+    }
+    return;
+  }
+
+  if (subcommand === "receipt") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
+    const receipt = intentReceipt(intent);
+    if (options.json) {
+      console.log(JSON.stringify(receipt, null, 2));
+    } else {
+      printIntentReceipt(receipt);
+    }
+    return;
+  }
+
+  if (subcommand === "events") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
+    const events = intentEvents(intent);
+    if (options.json) {
+      console.log(JSON.stringify(events, null, 2));
+    } else {
+      printIntentEvents(events);
+    }
+    return;
+  }
+
+  if (subcommand === "approve" || subcommand === "reject") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
+    const updated = applyReviewDecision(intent, {
+      decision: subcommand === "approve" ? "approved" : "rejected",
+      reviewer: options.reviewer,
+      reason: options.reason,
+    });
+    saveIntent(updated, effectiveOptions.store);
+
+    if (options.json) {
+      console.log(JSON.stringify(intentStatus(updated), null, 2));
+    } else {
+      printIntentStatus(intentStatus(updated));
+    }
+    return;
+  }
+
+  if (subcommand === "execute") {
+    const [intentId] = rest.filter((item) => !item.startsWith("--"));
+    const intent = loadIntent(required(intentId, "intent_id"), effectiveOptions.store);
+    const result = await executeIntent(intent, effectiveOptions);
+    saveIntent(result.intent, effectiveOptions.store);
+
+    if (options.json) {
+      console.log(JSON.stringify(result.output, null, 2));
+    } else {
+      printExecutionResult(result.output);
+    }
+    return;
+  }
+
   if (subcommand === "export") {
     const [intentId] = rest.filter((item) => !item.startsWith("--"));
     printReviewExport(required(intentId, "intent_id"), effectiveOptions, options);
     return;
   }
 
-  throw new Error("intent command must be list, show, or export");
+  throw new Error("intent command must be list, show, status, preflight, receipt, events, approve, reject, execute, or export");
 }
 
 function runReview(args) {
@@ -398,7 +496,7 @@ function encodeReviewPayload(intent) {
 }
 
 function buildReviewCommand(intentId) {
-  return `npx ${PACKAGE_JSON.name}@alpha review ${intentId}`;
+  return `npx ${PACKAGE_JSON.name} review ${intentId}`;
 }
 
 function parseOptions(args) {
@@ -505,6 +603,11 @@ function mergeConfigOptions(options, config) {
     store: options.store ?? config.intentStore,
     reviewBaseUrl: options.reviewBaseUrl ?? config.reviewBaseUrl,
     quoteProvider: options.quoteProvider ?? config.quoteProvider,
+    intentTtlMinutes: options.intentTtlMinutes ?? config.intentTtlMinutes,
+    quoteTtlMinutes: options.quoteTtlMinutes ?? config.quoteTtlMinutes,
+    rpcUrl: options.rpcUrl ?? config.rpcUrl ?? process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com",
+    jupiterSwapUrl: options.jupiterSwapUrl ?? config.jupiterSwapUrl ?? process.env.JUPITER_SWAP_URL ?? "https://api.jup.ag/swap/v1/swap",
+    jupiterApiKey: options.jupiterApiKey ?? config.jupiterApiKey ?? process.env.JUPITER_API_KEY,
   };
 }
 
@@ -516,6 +619,13 @@ function assertWritable(path, force) {
 
 function writeJsonFile(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function resolvePath(path) {
+  if (path.startsWith("~")) {
+    return resolve(process.env.HOME || ".", path.slice(1));
+  }
+  return resolve(path);
 }
 
 function setPolicyField(policy, field, rawValue) {
@@ -703,6 +813,7 @@ async function quoteJupiter(input, options) {
     settleAmount: Number(quote.outAmount) / 10 ** settleToken.decimals,
     settleToken: input.settleToken,
     priceImpactBps: Math.round(Math.abs(Number(quote.priceImpactPct)) * 10_000),
+    rawQuoteResponse: quote,
   };
 }
 
@@ -775,6 +886,470 @@ function listIntents(store) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+function intentStatus(intent) {
+  return {
+    intentId: intent.intentId,
+    status: intent.status,
+    decision: intent.decision,
+    nextAction: intent.nextAction,
+    riskLevel: intent.riskLevel,
+    reviewUrl: intent.reviewUrl,
+    reviewCommand: intent.reviewCommand,
+    reviewDecision: intent.reviewDecision ?? null,
+    eventCount: Array.isArray(intent.events) ? intent.events.length : 0,
+    quoteExpiresAt: intent.quote?.expiresAt ?? null,
+    quoteExpired: isQuoteExpired(intent),
+    createdAt: intent.createdAt,
+    expiresAt: intent.expiresAt ?? null,
+    expired: isIntentExpired(intent),
+  };
+}
+
+function intentEvents(intent) {
+  return {
+    intentId: intent.intentId,
+    events: Array.isArray(intent.events) ? intent.events : [],
+  };
+}
+
+function intentReceipt(intent) {
+  if (intent.receipt) {
+    return {
+      intentId: intent.intentId,
+      available: true,
+      status: intent.receipt.status ?? "available",
+      transactionImplemented: true,
+      receipt: intent.receipt,
+    };
+  }
+
+  return {
+    intentId: intent.intentId,
+    available: false,
+    status: "not_available",
+    transactionImplemented: false,
+    reason: "No confirmed settlement has been observed for this intent.",
+    receipt: null,
+  };
+}
+
+function appendIntentEvent(intent, event) {
+  return {
+    ...intent,
+    events: [
+      ...(Array.isArray(intent.events) ? intent.events : []),
+      {
+        at: event.at ?? new Date().toISOString(),
+        ...event,
+      },
+    ],
+  };
+}
+
+function applyReviewDecision(intent, input) {
+  if (isIntentExpired(intent)) {
+    throw new Error("intent is expired");
+  }
+
+  if (intent.status !== "review_required" || intent.nextAction !== "open_review") {
+    throw new Error("intent is not waiting for review");
+  }
+
+  const decision = normalizeReviewDecision(input.decision);
+  const reviewedAt = new Date().toISOString();
+
+  const updated = {
+    ...intent,
+    status: decision === "approved" ? "ready_for_authorization" : "rejected",
+    nextAction: decision === "approved" ? "ready_for_authorization" : "rejected",
+    reviewDecision: {
+      decision,
+      reviewer:
+        typeof input.reviewer === "string" && input.reviewer.trim()
+          ? input.reviewer.trim()
+          : "local",
+      reason:
+        typeof input.reason === "string" && input.reason.trim()
+          ? input.reason.trim()
+          : null,
+      reviewedAt,
+    },
+    updatedAt: reviewedAt,
+  };
+
+  return appendIntentEvent(updated, {
+    type: decision === "approved" ? "review.approved" : "review.rejected",
+    at: reviewedAt,
+    reviewer:
+      typeof input.reviewer === "string" && input.reviewer.trim()
+        ? input.reviewer.trim()
+        : "local",
+    reason:
+      typeof input.reason === "string" && input.reason.trim()
+        ? input.reason.trim()
+        : null,
+  });
+}
+
+async function executeIntent(intent, options) {
+  const gate = transactionRequestErrorForIntent(intent);
+  if (gate) {
+    throw new Error(gate.message);
+  }
+
+  const executionGate = transactionRequestExecutionErrorForIntent(intent);
+  if (executionGate) {
+    throw new Error(executionGate.message);
+  }
+
+  const keypairPath = required(options.keypair, "keypair");
+  const web3 = require("@solana/web3.js");
+  const payer = loadSolanaKeypair(web3, keypairPath);
+  const account = payer.publicKey.toBase58();
+  const existingAccount = intent.transactionRequest?.account;
+  if (existingAccount && existingAccount !== account) {
+    throw new Error("transaction request is already bound to a different account");
+  }
+
+  const accountBoundAt = intent.transactionRequest?.accountBoundAt ?? new Date().toISOString();
+  let updated = {
+    ...intent,
+    transactionRequest: {
+      ...(intent.transactionRequest ?? {}),
+      account,
+      accountBoundAt,
+    },
+    updatedAt: accountBoundAt,
+  };
+  if (!existingAccount) {
+    updated = appendIntentEvent(updated, {
+      type: "transaction_request.account_bound",
+      at: accountBoundAt,
+      account: previewAccount(account),
+    });
+  }
+
+  let swap;
+  try {
+    swap = await buildJupiterSwapTransaction(intent, account, options);
+  } catch (error) {
+    const failed = appendIntentEvent(updated, {
+      type: "execution.failed",
+      reason: error.message,
+    });
+    return {
+      intent: {
+        ...failed,
+        transactionRequest: {
+          ...(failed.transactionRequest ?? {}),
+          status: "transaction_failed",
+          transactionSource: "jupiter_swap",
+        },
+        updatedAt: new Date().toISOString(),
+      },
+      output: {
+        intentId: intent.intentId,
+        status: "failed",
+        error: "jupiter_swap_failed",
+        message: error.message,
+      },
+    };
+  }
+
+  const transaction = web3.VersionedTransaction.deserialize(Buffer.from(swap.transaction, "base64"));
+  transaction.sign([payer]);
+  const signedTransaction = Buffer.from(transaction.serialize()).toString("base64");
+  const dryRun = options.dryRun === true || options.dryRun === "true";
+
+  if (dryRun) {
+    const now = new Date().toISOString();
+    const dryRunIntent = appendIntentEvent(
+      {
+        ...updated,
+        transactionRequest: {
+          ...(updated.transactionRequest ?? {}),
+          status: "signed_dry_run",
+          transactionSource: "jupiter_swap",
+          transactionCreatedAt: now,
+        },
+        updatedAt: now,
+      },
+      {
+        type: "execution.signed_dry_run",
+        at: now,
+        account: previewAccount(account),
+        source: "jupiter_swap",
+      }
+    );
+
+    return {
+      intent: dryRunIntent,
+      output: {
+        intentId: intent.intentId,
+        status: "signed_dry_run",
+        account,
+        transaction: signedTransaction,
+      },
+    };
+  }
+
+  const connection = new web3.Connection(options.rpcUrl, options.commitment ?? "confirmed");
+  const signature = await connection.sendRawTransaction(transaction.serialize(), {
+    skipPreflight: options.skipPreflight === true || options.skipPreflight === "true",
+    maxRetries: Number(options.maxRetries ?? 3),
+  });
+  const confirmation = await waitForSignatureConfirmation(
+    connection,
+    signature,
+    Number(options.confirmTimeoutMs ?? 60_000)
+  );
+  const confirmedAt = new Date().toISOString();
+  const receipt = {
+    status: confirmation.err ? "failed" : "confirmed",
+    signature,
+    account,
+    rpcUrl: options.rpcUrl,
+    explorerUrl: `https://solscan.io/tx/${signature}`,
+    confirmedAt,
+    confirmation,
+  };
+  const settled = receipt.status === "confirmed";
+  const executedIntent = appendIntentEvent(
+    {
+      ...updated,
+      status: settled ? "settled" : "execution_failed",
+      nextAction: settled ? "settled" : "retry_authorization",
+      receipt,
+      transactionRequest: {
+        ...(updated.transactionRequest ?? {}),
+        status: receipt.status,
+        transactionSource: "jupiter_swap",
+        transactionCreatedAt: confirmedAt,
+      },
+      updatedAt: confirmedAt,
+    },
+    {
+      type: settled ? "execution.confirmed" : "execution.failed",
+      at: confirmedAt,
+      account: previewAccount(account),
+      signature,
+    }
+  );
+
+  return {
+    intent: executedIntent,
+    output: {
+      intentId: intent.intentId,
+      status: receipt.status,
+      signature,
+      explorerUrl: receipt.explorerUrl,
+      receipt,
+    },
+  };
+}
+
+function loadSolanaKeypair(web3, keypairPath) {
+  const decoded = JSON.parse(readFileSync(resolvePath(keypairPath), "utf8"));
+  const secretKey = Array.isArray(decoded) ? decoded : decoded.secretKey;
+  if (!Array.isArray(secretKey)) {
+    throw new Error("keypair must be a Solana JSON keypair array or an object with secretKey");
+  }
+  return web3.Keypair.fromSecretKey(Uint8Array.from(secretKey));
+}
+
+async function buildJupiterSwapTransaction(intent, account, options) {
+  const response = await fetch(options.jupiterSwapUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(options.jupiterApiKey ? { "x-api-key": options.jupiterApiKey } : {}),
+    },
+    body: JSON.stringify({
+      quoteResponse: intent.quote.rawQuoteResponse,
+      userPublicKey: account,
+      destinationTokenAccount: intent.recipientTokenAccount,
+    }),
+  });
+  const text = await response.text();
+  let body = null;
+  if (text.trim()) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { raw: text };
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(body?.error || body?.message || `Jupiter swap failed: ${response.status} ${response.statusText}`);
+  }
+  if (typeof body?.swapTransaction !== "string" || body.swapTransaction.length === 0) {
+    throw new Error("Jupiter swap response did not include swapTransaction");
+  }
+  return {
+    transaction: body.swapTransaction,
+  };
+}
+
+async function waitForSignatureConfirmation(connection, signature, timeoutMs) {
+  const startedAt = Date.now();
+  let lastStatus = null;
+  while (Date.now() - startedAt <= timeoutMs) {
+    const result = await connection.getSignatureStatuses([signature], {
+      searchTransactionHistory: true,
+    });
+    const status = result.value[0];
+    if (status) {
+      lastStatus = status;
+      if (status.err || status.confirmationStatus === "confirmed" || status.confirmationStatus === "finalized") {
+        return status;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error(`timed out waiting for confirmation for ${signature}`);
+}
+
+function normalizeReviewDecision(value) {
+  if (value === "approved" || value === "rejected") return value;
+  throw new Error("review decision must be approved or rejected");
+}
+
+function transactionRequestErrorForIntent(intent) {
+  if (isIntentExpired(intent)) {
+    return {
+      error: "intent_expired",
+      message: "Expired intents cannot create transaction requests.",
+    };
+  }
+
+  if (intent.status === "review_required" || intent.nextAction === "open_review") {
+    return {
+      error: "review_required",
+      message: "Intent must be approved before transaction creation.",
+    };
+  }
+
+  if (intent.status === "rejected" || intent.nextAction === "rejected") {
+    return {
+      error: "intent_rejected",
+      message: "Rejected intents cannot create transaction requests.",
+    };
+  }
+
+  if (intent.status !== "ready_for_authorization" || intent.nextAction !== "ready_for_authorization") {
+    return {
+      error: "intent_not_ready",
+      message: "Intent is not ready for authorization.",
+    };
+  }
+
+  if (isQuoteExpired(intent)) {
+    return {
+      error: "quote_expired",
+      message: "Quote is expired and must be refreshed before transaction creation.",
+    };
+  }
+
+  return null;
+}
+
+function transactionRequestExecutionErrorForIntent(intent) {
+  if (!intent.quote || typeof intent.quote.rawQuoteResponse !== "object" || intent.quote.rawQuoteResponse === null) {
+    return {
+      error: "quote_not_executable",
+      message: "Intent must be created with a Jupiter executable quote before transaction creation.",
+    };
+  }
+
+  if (!isSolanaPublicKey(intent.recipientTokenAccount)) {
+    return {
+      error: "missing_recipient_token_account",
+      message: "Intent must include a recipient token account before transaction creation.",
+    };
+  }
+
+  return null;
+}
+
+function statusForTransactionGate(gate) {
+  if (gate.error === "review_required") return "blocked_by_review";
+  if (gate.error === "intent_rejected") return "blocked_rejected";
+  if (gate.error === "quote_expired") return "blocked_quote_expired";
+  if (gate.error === "quote_not_executable") return "blocked_quote_not_executable";
+  if (gate.error === "missing_recipient_token_account") return "blocked_missing_recipient_token_account";
+  return "blocked_not_ready";
+}
+
+function isSolanaPublicKey(value) {
+  return typeof value === "string" && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
+}
+
+function previewAccount(account) {
+  if (typeof account !== "string" || account.length <= 8) return account;
+  return `${account.slice(0, 4)}...${account.slice(-4)}`;
+}
+
+function isIntentExpired(intent, now = new Date()) {
+  return typeof intent.expiresAt === "string" && Date.parse(intent.expiresAt) <= now.getTime();
+}
+
+function isQuoteExpired(intent, now = new Date()) {
+  return typeof intent.quote?.expiresAt === "string" && Date.parse(intent.quote.expiresAt) <= now.getTime();
+}
+
+function expiresAtFor(createdAt, ttlMinutes) {
+  const ttl = Number(ttlMinutes ?? DEFAULT_CONFIG.intentTtlMinutes);
+  const safeTtl = Number.isFinite(ttl) && ttl > 0 ? ttl : DEFAULT_CONFIG.intentTtlMinutes;
+  return new Date(createdAt.getTime() + safeTtl * 60_000);
+}
+
+function transactionRequestPreflight(intent, baseUrl) {
+  const endpointUrl = new URL(`${baseUrl.replace(/\/+$/, "")}/api/transaction-requests/${intent.intentId}`);
+  if (intent.transactionRequest?.requestToken) {
+    endpointUrl.searchParams.set("request", intent.transactionRequest.requestToken);
+  }
+  const endpoint = endpointUrl.toString();
+  const base = {
+    intentId: intent.intentId,
+    kind: "solana_pay_transaction_request",
+    endpoint,
+    url: `solana:${endpoint}`,
+    method: "GET_POST",
+    transactionImplemented: true,
+    boundAccount: intent.transactionRequest?.account ?? null,
+    accountBoundAt: intent.transactionRequest?.accountBoundAt ?? null,
+  };
+  const gate = transactionRequestErrorForIntent(intent);
+
+  if (gate) {
+    return {
+      ...base,
+      status: statusForTransactionGate(gate),
+      canRequestTransaction: false,
+      reason: gate.message,
+    };
+  }
+
+  const executionGate = transactionRequestExecutionErrorForIntent(intent);
+  if (executionGate) {
+    return {
+      ...base,
+      status: statusForTransactionGate(executionGate),
+      canRequestTransaction: false,
+      reason: executionGate.message,
+    };
+  }
+
+  return {
+    ...base,
+    status: "ready",
+    canRequestTransaction: true,
+    reason: "Ready to create and execute a Jupiter swap transaction.",
+  };
+}
+
 function printDoctor(result) {
   console.log("jup.sh doctor");
   console.log("");
@@ -798,6 +1373,64 @@ function printDoctor(result) {
   }
   console.log("");
   console.log(`Status: ${result.status}`);
+}
+
+function printIntentStatus(status) {
+  console.log(`Intent: ${status.intentId}`);
+  console.log(`Status: ${status.status}`);
+  console.log(`Decision: ${status.decision}`);
+  console.log(`Next action: ${status.nextAction}`);
+  console.log(`Risk: ${status.riskLevel}`);
+  if (status.reviewDecision) {
+    console.log(`Review decision: ${status.reviewDecision.decision}`);
+  }
+  console.log(`Review: ${status.reviewUrl}`);
+}
+
+function printTransactionRequestPreflight(preflight) {
+  console.log(`Intent: ${preflight.intentId}`);
+  console.log(`Transaction request: ${preflight.status}`);
+  console.log(`Implemented: ${preflight.transactionImplemented}`);
+  console.log(`Can request transaction: ${preflight.canRequestTransaction}`);
+  console.log(`Endpoint: ${preflight.endpoint}`);
+  console.log(`Reason: ${preflight.reason}`);
+}
+
+function printIntentReceipt(receipt) {
+  console.log(`Intent: ${receipt.intentId}`);
+  console.log(`Receipt: ${receipt.status}`);
+  console.log(`Available: ${receipt.available}`);
+  console.log(`Transaction implemented: ${receipt.transactionImplemented}`);
+  if (receipt.reason) {
+    console.log(`Reason: ${receipt.reason}`);
+  }
+}
+
+function printExecutionResult(result) {
+  console.log(`Intent: ${result.intentId}`);
+  console.log(`Status: ${result.status}`);
+  if (result.signature) {
+    console.log(`Signature: ${result.signature}`);
+  }
+  if (result.explorerUrl) {
+    console.log(`Explorer: ${result.explorerUrl}`);
+  }
+  if (result.error) {
+    console.log(`Error: ${result.error}`);
+    console.log(`Message: ${result.message}`);
+  }
+}
+
+function printIntentEvents(result) {
+  console.log(`Intent: ${result.intentId}`);
+  if (result.events.length === 0) {
+    console.log("Events: (none)");
+    return;
+  }
+
+  for (const event of result.events) {
+    console.log(`${event.at}\t${event.type}`);
+  }
 }
 
 function printPolicy(policy) {
@@ -831,7 +1464,7 @@ function printIntent(intent, json) {
 }
 
 function printHelp() {
-  console.log("jup-sh alpha CLI");
+  console.log("jup-sh CLI");
   console.log("");
   console.log("Commands:");
   console.log("  init [--force] [--json]");
@@ -843,6 +1476,13 @@ function printHelp() {
   console.log("  policy set <field> <value>");
   console.log("  intent list [--json]");
   console.log("  intent show <intent_id> [--json]");
+  console.log("  intent status <intent_id> [--json]");
+  console.log("  intent preflight <intent_id> [--json]");
+  console.log("  intent receipt <intent_id> [--json]");
+  console.log("  intent events <intent_id> [--json]");
+  console.log("  intent approve <intent_id> [--json] [--reviewer local] [--reason text]");
+  console.log("  intent reject <intent_id> [--json] [--reviewer local] [--reason text]");
+  console.log("  intent execute <intent_id> --keypair ~/.config/solana/id.json [--rpc-url URL] [--json]");
   console.log("  intent export <intent_id> [--payload-only]");
   console.log("  review <intent_id> [--json] [--payload-only]");
   console.log("  doctor [--json]");

@@ -13,8 +13,8 @@ alpha.
 The public alpha is available through npm:
 
 ```bash
-npx jup-sh@alpha init
-npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC --json
+npx jup-sh init
+npx jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
 The package name and binary are:
@@ -39,6 +39,7 @@ npm run release:check
 The alpha smoke test covers the CLI contract for agents:
 
 - `init` writes local config and policy files
+- `doctor` reports local workspace state
 - `policy trust` and `policy set` mutate local risk policy
 - `pay --json` emits parseable JSON only
 - `auto_pay` exits with code `0`
@@ -70,9 +71,9 @@ docs/releases/
 Primary public path:
 
 ```bash
-npx jup-sh@alpha init
-npx jup-sh@alpha policy trust api.vendor.example
-npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json
+npx jup-sh init
+npx jup-sh policy trust api.vendor.example
+npx jup-sh pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json
 ```
 
 Installed target:
@@ -178,7 +179,7 @@ Completed.
 First public npm alpha:
 
 ```bash
-npx jup-sh@alpha ...
+npx jup-sh ...
 ```
 
 Completed.
@@ -200,6 +201,24 @@ Completed.
 Top-level Risk Review shortcut.
 
 Completed.
+
+### Alpha 6
+
+Local workspace diagnostics with `jup-sh doctor`.
+
+Completed.
+
+### Alpha 7
+
+Full review handoff metadata in `pay --json` and `review --json`.
+
+Completed.
+
+### Alpha 8
+
+Transaction Request Skeleton design checkpoint.
+
+Draft.
 
 ### Beta
 

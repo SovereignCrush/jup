@@ -369,11 +369,11 @@ function renderHome() {
             <span>Policy decides when humans step in.</span>
           </p>
           <div class="try-block">
-            <div class="try-label">Start with the alpha CLI</div>
+            <div class="try-label">Start with the 1.0 CLI</div>
             <button class="terminal-line" type="button" data-copy-command>
               <span class="terminal-flow">
-                <span class="terminal-command"><em>$</em> <strong>npx</strong> <code>jup-sh@alpha</code> <code>init</code></span>
-                <span class="terminal-command"><em>$</em> <strong>npx</strong> <code>jup-sh@alpha</code> <code>doctor</code></span>
+                <span class="terminal-command"><em>$</em> <strong>npx</strong> <code>jup-sh</code> <code>init</code></span>
+                <span class="terminal-command"><em>$</em> <strong>npx</strong> <code>jup-sh</code> <code>doctor</code></span>
               </span>
               <small aria-label="Copy command"></small>
             </button>
@@ -404,16 +404,16 @@ function renderHome() {
         <span class="section-kicker">Product Layer</span>
         <h2>Jupiter-powered settlement, policy-driven risk.</h2>
         <p>
-          jup.sh is now a public npm alpha for local agent payment intents.
-          The CLI initializes a workspace, checks local policy, estimates
-          settlement, and creates a Risk Review URL when humans need to step in.
+          jup.sh is now a public 1.0 npm CLI for Solana agent payment intents.
+          The CLI initializes a workspace, checks local policy, gets Jupiter
+          settlement quotes, and can execute from a user-provided local keypair.
         </p>
         <div class="hero-actions tight-actions">
           <a class="primary-btn" href="/pay/${state.invoice.id}" data-link>View Risk Review demo</a>
         </div>
       </div>
       <div class="mini-table">
-        <div><span>Install path</span><strong>npx jup-sh@alpha</strong></div>
+        <div><span>Install path</span><strong>npx jup-sh</strong></div>
         <div><span>Setup</span><strong>init + doctor</strong></div>
         <div><span>Risk</span><strong>policy trust / set</strong></div>
         <div><span>Payment</span><strong>pay --json</strong></div>
@@ -451,7 +451,7 @@ function renderHome() {
           <span class="flow-index">03</span>
           <div>
             <strong>Create intent</strong>
-            <span>Agents call pay --json with token, amount, recipient, and settlement target. Jupiter remains quote-only today.</span>
+            <span>Agents call pay --json with token, amount, recipient, and settlement target. Jupiter quotes can become executable swap transactions.</span>
           </div>
         </article>
         <article class="flow-step">
@@ -507,7 +507,7 @@ function renderNewPayment() {
           <div class="summary-line"><span>Agent creates</span><strong>Payment intent</strong></div>
           <div class="summary-line"><span>Default mode</span><strong>Auto Pay</strong></div>
           <div class="summary-line"><span>Exception mode</span><strong>Risk Review</strong></div>
-          <div class="summary-line"><span>Recipient gets</span><strong>${money(state.invoice.amount)} USDC</strong></div>
+          <div class="summary-line"><span>Recipient target</span><strong>${money(state.invoice.amount)} USDC</strong></div>
           <div class="summary-line"><span>Route model</span><strong>Jupiter API</strong></div>
           <div class="summary-line"><span>Custody</span><strong>Non-custodial</strong></div>
         </div>
@@ -616,7 +616,7 @@ function renderCheckout() {
           <div class="clean-summary">
             <div><span>Policy result</span><strong>${escapeHtml(policyResult)}</strong></div>
             <div><span>You pay</span><strong>${quote.formattedPayAmount} ${quote.token.symbol}</strong></div>
-            <div><span>Recipient gets</span><strong>${money(state.invoice.amount)} USDC</strong></div>
+            <div><span>Recipient target</span><strong>${money(state.invoice.amount)} USDC</strong></div>
             <div><span>Route</span><strong>${escapeHtml(quote.route)}</strong></div>
             <div><span>Risk reason</span><strong>${escapeHtml(riskReason)}</strong></div>
             <div><span>Recipient</span><strong class="mono">${escapeHtml(shortAddress(recipient))}</strong></div>
@@ -625,7 +625,7 @@ function renderCheckout() {
 
           <div class="review-actions">
             <button class="primary-btn pay-action" data-pay ${settled ? "disabled" : ""}>
-              ${paid ? "Payment approved" : rejected ? "Payment rejected" : "Approve payment"}
+              ${paid ? "Intent approved" : rejected ? "Intent rejected" : "Approve intent"}
             </button>
             <button class="ghost-btn pay-action" data-reject ${settled ? "disabled" : ""}>Reject</button>
           </div>
@@ -677,13 +677,13 @@ function renderDocs() {
         <section id="quickstart" class="doc-section">
           <h2>Quickstart</h2>
           <p>
-            The npm alpha is live. Start with a local workspace, inspect it,
+            The npm 1.0 CLI is live. Start with a local workspace, inspect it,
             tune policy, then create a structured payment intent.
           </p>
-          <div class="code-card">npx jup-sh@alpha init
-npx jup-sh@alpha doctor
-npx jup-sh@alpha policy trust api.vendor.example
-npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json</div>
+          <div class="code-card">npx jup-sh init
+npx jup-sh doctor
+npx jup-sh policy trust api.vendor.example
+npx jup-sh pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json</div>
         </section>
 
         <section id="model" class="doc-section">
@@ -718,7 +718,7 @@ npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --rec
           <ul class="doc-list">
             <li>Agent creates a USDC-denominated payment intent.</li>
             <li>Policy checks amount, daily limits, token verification, route quality, recipient, and frequency.</li>
-            <li>Payments inside policy continue to local wallet authorization.</li>
+            <li>Payments inside policy become ready for wallet authorization or local CLI execution.</li>
             <li>Risk Review appears for flagged payments such as new recipients or high slippage.</li>
             <li>Jupiter API quotes and routes the payer's verified token into USDC settlement.</li>
           </ul>
@@ -727,7 +727,7 @@ npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --rec
         <section id="open-source" class="doc-section">
           <h2>Open source</h2>
           <p>
-            jup.sh is open source and already publishes a public npm alpha:
+            jup.sh is open source and publishes a public npm package:
             policy examples, Risk Review pages, CLI examples, SDK prototypes,
             and release notes are available in the repository.
           </p>
@@ -788,7 +788,7 @@ document.addEventListener("click", (event) => {
   if (connect) {
     state.connected = !state.connected;
     render();
-    showToast(state.connected ? "Wallet connected for prototype payment." : "Wallet disconnected.");
+    showToast(state.connected ? "Wallet connected for prototype review." : "Wallet disconnected.");
   }
 
   const tokenButton = event.target.closest("[data-token]");
@@ -802,14 +802,14 @@ document.addEventListener("click", (event) => {
     state.connected = true;
     state.paymentState = "paid";
     render();
-    showToast("Payment approved. Recipient receives USDC.");
+    showToast("Intent approved for future authorization. No transaction was sent.");
   }
 
   const reject = event.target.closest("[data-reject]");
   if (reject) {
     state.paymentState = "rejected";
     render();
-    showToast("Payment rejected. No transaction will be sent.");
+    showToast("Intent rejected. No transaction will be sent.");
   }
 
   const copy = event.target.closest("[data-copy]");
@@ -823,8 +823,8 @@ document.addEventListener("click", (event) => {
   if (command) {
     navigator.clipboard?.writeText(
       [
-        "npx jup-sh@alpha init",
-        "npx jup-sh@alpha doctor",
+        "npx jup-sh init",
+        "npx jup-sh doctor",
       ].join("\n")
     );
     showToast("Command copied.");

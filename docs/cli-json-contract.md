@@ -11,6 +11,12 @@ This page defines the agent-facing contract for:
 jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC --json
 ```
 
+It also defines the smaller status summary returned by:
+
+```bash
+jup-sh intent status intent_xxx --json
+```
+
 The contract is intentionally small. It represents a local payment intent and
 policy result. It does not include private keys, signatures, unsigned
 transactions, custody, or swap execution.
@@ -73,7 +79,9 @@ This makes the CLI safe to call from scripts, local tools, and agent runtimes.
 | `policyChecks` | object[] | yes | Deterministic policy evidence. |
 | `reviewUrl` | string | yes | Hosted Risk Review URL for the intent. For `review_required`, this is a full URL with `#intent=` payload. |
 | `reviewCommand` | string | yes | CLI shortcut that recreates the Risk Review URL from the local intent store. |
+| `transactionRequest` | object | yes | Local transaction request token scaffold. Does not mean transaction construction exists. |
 | `createdAt` | string | yes | RFC 3339 timestamp. |
+| `expiresAt` | string | yes | RFC 3339 timestamp after which the intent cannot continue to review approval or transaction request creation. |
 
 ## Nested Objects
 
@@ -94,6 +102,8 @@ This makes the CLI safe to call from scripts, local tools, and agent runtimes.
 | `settleAmount` | number | Requested settlement amount. |
 | `settleToken` | string | Settlement token. |
 | `priceImpactBps` | number | Price impact in basis points. |
+| `capturedAt` | string | RFC 3339 timestamp when the quote evidence was captured. |
+| `expiresAt` | string | RFC 3339 timestamp after which the quote must not be used for transaction creation. |
 
 ### policyChecks[]
 
@@ -102,6 +112,12 @@ This makes the CLI safe to call from scripts, local tools, and agent runtimes.
 | `name` | string | Stable machine-readable check name. |
 | `status` | string | `pass`, `review`, or `reject`. |
 | `message` | string | Human-readable explanation. |
+
+### transactionRequest
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `requestToken` | string | Local opaque token for future transaction request URLs. |
 
 Current check names:
 
@@ -192,7 +208,7 @@ Current check names:
     }
   ],
   "reviewUrl": "https://www.jup.sh/pay/intent_abc123#intent=...",
-  "reviewCommand": "npx jup-sh@alpha review intent_abc123",
+  "reviewCommand": "npx jup-sh review intent_abc123",
   "createdAt": "2026-05-09T00:00:00Z"
 }
 ```
@@ -206,6 +222,154 @@ tests/fixtures/pay-review-required.json
 Runtime-specific fields include `intentId`, `reviewUrl`, `reviewCommand`, and
 `createdAt`.
 
+## Intent Status Summary
+
+Saved intents can be queried without returning the full quote and policy
+evidence:
+
+```bash
+jup-sh intent status intent_xxx --json
+```
+
+Response:
+
+```json
+{
+  "intentId": "intent_xxx",
+  "status": "review_required",
+  "decision": "review_required",
+  "nextAction": "open_review",
+  "riskLevel": "medium",
+  "reviewUrl": "https://www.jup.sh/pay/intent_xxx#intent=...",
+  "reviewCommand": "npx jup-sh review intent_xxx",
+  "reviewDecision": null,
+  "eventCount": 0,
+  "quoteExpiresAt": "2026-05-12T00:02:00.000Z",
+  "quoteExpired": false,
+  "createdAt": "2026-05-12T00:00:00.000Z",
+  "expiresAt": "2026-05-12T00:15:00.000Z",
+  "expired": false
+}
+```
+
+The status summary is the same shape returned by the local read-only Intent
+API. It is intentionally smaller than `intent show --json`.
+
+After local review approval or rejection, `reviewDecision` is populated:
+
+```json
+{
+  "decision": "approved",
+  "reviewer": "local",
+  "reason": "known vendor",
+  "reviewedAt": "2026-05-12T00:00:00.000Z"
+}
+```
+
+The CLI can persist this local review state:
+
+```bash
+jup-sh intent approve intent_xxx --reviewer local --reason "known vendor" --json
+jup-sh intent reject intent_xxx --reviewer local --reason "too risky" --json
+```
+
+These commands do not sign or submit transactions.
+
+## Transaction Request Preflight
+
+Local builds can inspect transaction request readiness:
+
+```bash
+jup-sh intent preflight intent_xxx --json
+```
+
+Response:
+
+```json
+{
+  "intentId": "intent_xxx",
+  "kind": "solana_pay_transaction_request",
+  "endpoint": "https://www.jup.sh/api/transaction-requests/intent_xxx",
+  "url": "solana:https://www.jup.sh/api/transaction-requests/intent_xxx",
+  "method": "GET_POST",
+  "transactionImplemented": true,
+  "boundAccount": null,
+  "accountBoundAt": null,
+  "status": "blocked_by_review",
+  "canRequestTransaction": false,
+  "reason": "Intent must be approved before transaction creation."
+}
+```
+
+`transactionImplemented` is `true` in 1.0. `canRequestTransaction` is still
+`false` until policy, review, expiry, quote freshness, executable Jupiter quote,
+recipient token account, and request-token gates pass.
+
+Expired intents return a blocked preflight status and cannot be approved or used
+to request a transaction.
+
+Expired quotes return `blocked_quote_expired` in preflight and
+`quote_expired` from transaction request POST.
+
+Preflight endpoint URLs include `?request=<token>` when the intent has a local
+transaction request token. The metadata and POST endpoints reject missing or
+incorrect tokens with `invalid_request_token`.
+
+After the first valid transaction request POST reaches the ready gate, preflight
+may include `boundAccount` and `accountBoundAt`. Later POST attempts with a
+different account are rejected with `account_mismatch`.
+
+## Receipt Scaffold
+
+Local draft builds can query receipt state:
+
+```bash
+jup-sh intent receipt intent_xxx --json
+```
+
+Current response:
+
+```json
+{
+  "intentId": "intent_xxx",
+  "available": false,
+  "status": "not_available",
+  "transactionImplemented": false,
+  "reason": "No confirmed settlement has been observed for this intent.",
+  "receipt": null
+}
+```
+
+This is intentionally not a receipt. It is the machine-readable absence of a
+receipt.
+
+## Intent Events
+
+Local draft builds can query the intent event log:
+
+```bash
+jup-sh intent events intent_xxx --json
+```
+
+Response:
+
+```json
+{
+  "intentId": "intent_xxx",
+  "events": [
+    {
+      "at": "2026-05-12T00:00:00.000Z",
+      "type": "review.approved",
+      "reviewer": "local",
+      "reason": "known vendor"
+    }
+  ]
+}
+```
+
+The event log is local and unauthenticated. It is an audit scaffold for future
+hosted intent state, transaction signatures, confirmations, and receipts.
+
 ## Parser Guidance For Agents
 
 Agents should:
@@ -216,6 +380,5 @@ Agents should:
 4. For `open_review`, return or open `reviewUrl`; `reviewCommand` is available
    for local CLI handoff.
 5. Show `reasons` and `policyChecks` when asking a user to review.
-6. Never infer that `auto_pay` means a transaction has been signed. In the
-   current alpha it only means the intent is ready for a future authorization
-   step.
+6. Never infer that `auto_pay` means a transaction has been signed. It means
+   the intent is ready for wallet authorization or explicit local CLI execution.

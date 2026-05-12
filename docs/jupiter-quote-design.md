@@ -201,5 +201,6 @@ This phase does not:
 1. Add route quality checks beyond price impact.
 2. Store route metadata for Risk Review.
 3. Add a verified token registry.
-4. Generate Solana Pay transaction requests after quote behavior is stable.
+4. Use the [Transaction Request Skeleton Design](transaction-request-skeleton-design.md)
+   as the first Solana Pay transaction request boundary.
 5. Keep Jupiter route construction behind the same `SettlementQuoter` boundary.

@@ -1,6 +1,6 @@
 {
   "name": "jup-sh",
-  "version": "0.1.0-alpha.7",
+  "version": "1.0.0",
   "description": "Risk and settlement for Solana agent payments.",
   "license": "MIT",
   "homepage": "https://www.jup.sh",
@@ -23,7 +23,7 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "tag": "alpha",
+    "tag": "latest",
     "access": "public"
   },
   "keywords": [
@@ -32,5 +32,8 @@
     "agent",
     "payments",
     "risk"
-  ]
+  ],
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4"
+  }
 }

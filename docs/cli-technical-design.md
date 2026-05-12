@@ -286,7 +286,7 @@ The CLI alpha does not implement:
 - custody;
 - real Solana Pay transaction request generation;
 - remote backend persistence;
-- published npm package distribution.
+- published SDK package distribution.
 
 ## Implementation Sequence
 
@@ -305,3 +305,8 @@ flowchart LR
 The current alpha covers steps 1 through 3. Later phases should not skip the
 authorization boundary: agents create intents, users or local policy authorize
 funds.
+
+The draft [Transaction Request Skeleton Design](transaction-request-skeleton-design.md)
+documents step 4 before runtime implementation. It should remain separate from
+`pay --json` until request expiry, replay protection, review gating, and wallet
+handoff rules are explicit.

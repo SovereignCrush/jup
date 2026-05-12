@@ -1,19 +1,20 @@
 ---
 title: Quickstart
-description: Run the jup.sh alpha locally or with npx.
+description: Run jup.sh 1.0 locally or with npx.
 ---
 
 # Quickstart
 
-This guide runs the current `jup.sh` alpha with `npx`.
+This guide runs the current `jup.sh` 1.0 CLI with `npx`.
 
-The alpha is useful for testing the agent-facing payment contract:
+The CLI is useful for agent-facing payment flows:
 
 ```txt
-agent intent -> policy decision -> quote estimate -> local intent -> review URL
+agent intent -> policy decision -> Jupiter quote -> authorization -> receipt
 ```
 
-It does not sign transactions, execute swaps, custody funds, or move tokens.
+The server path never signs or custodies funds. The CLI can sign and submit
+only when the user explicitly provides a local Solana keypair.
 
 ## Prerequisites
 
@@ -24,17 +25,17 @@ You need:
 The homepage keeps the first step intentionally short:
 
 ```bash
-npx jup-sh@alpha init
-npx jup-sh@alpha doctor
+npx jup-sh init
+npx jup-sh doctor
 ```
 
 This page expands that into the full developer flow:
 
 ```bash
-npx jup-sh@alpha init
-npx jup-sh@alpha doctor
-npx jup-sh@alpha policy trust api.vendor.example
-npx jup-sh@alpha pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json
+npx jup-sh init
+npx jup-sh doctor
+npx jup-sh policy trust api.vendor.example
+npx jup-sh pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient api.vendor.example --json
 ```
 
 For source development, you also need a working Rust toolchain and git:
@@ -75,7 +76,7 @@ to evaluate. The policy decision controls what the caller should do next.
 ## 1. Initialize Local Config
 
 ```bash
-npx jup-sh@alpha init
+npx jup-sh init
 ```
 
 This writes:
@@ -98,8 +99,8 @@ npm run cli:alpha -- init
 ## 2. Check The Workspace
 
 ```bash
-npx jup-sh@alpha doctor
-npx jup-sh@alpha doctor --json
+npx jup-sh doctor
+npx jup-sh doctor --json
 ```
 
 `doctor` verifies the local config, policy file, intent store, review URL,
@@ -115,7 +116,7 @@ npm run cli:alpha -- doctor
 ## 3. Configure Local Policy
 
 ```bash
-npx jup-sh@alpha policy show
+npx jup-sh policy show
 ```
 
 The default policy is conservative:
@@ -130,7 +131,7 @@ The default policy is conservative:
 Create or overwrite only the local policy file:
 
 ```bash
-npx jup-sh@alpha policy init
+npx jup-sh policy init
 ```
 
 This writes:
@@ -144,13 +145,13 @@ Use `--force` if you intentionally want to overwrite it.
 Trust a known API or vendor recipient:
 
 ```bash
-npx jup-sh@alpha policy trust api.vendor.example
+npx jup-sh policy trust api.vendor.example
 ```
 
 Raise the auto-pay limit:
 
 ```bash
-npx jup-sh@alpha policy set max-auto 10
+npx jup-sh policy set max-auto 10
 ```
 
 For source development, prefix the same commands with `npm run cli:alpha --`.
@@ -158,7 +159,7 @@ For source development, prefix the same commands with `npm run cli:alpha --`.
 ## 4. Create A Payment Intent
 
 ```bash
-npx jup-sh@alpha pay --agent deepseek --token SOL --amount 20 --settle USDC
+npx jup-sh pay --agent deepseek --token SOL --amount 20 --settle USDC
 ```
 
 This creates a local payment intent and saves it under:
@@ -175,7 +176,7 @@ and does not call external APIs.
 Agents and scripts should use `--json`:
 
 ```bash
-npx jup-sh@alpha pay \
+npx jup-sh pay \
   --agent deepseek \
   --token SOL \
   --amount 20 \
@@ -202,13 +203,13 @@ For a fuller caller guide, see [Agent Integration](agent-integration.md).
 Trust the demo recipient first:
 
 ```bash
-npx jup-sh@alpha policy trust jup-sh-demo
+npx jup-sh policy trust jup-sh-demo
 ```
 
 Auto-pay candidate with a trusted recipient and small amount:
 
 ```bash
-npx jup-sh@alpha pay \
+npx jup-sh pay \
   --agent deepseek \
   --token SOL \
   --amount 2 \
@@ -220,7 +221,7 @@ npx jup-sh@alpha pay \
 Review-required payment with the default policy:
 
 ```bash
-npx jup-sh@alpha pay \
+npx jup-sh pay \
   --agent deepseek \
   --token SOL \
   --amount 20 \
@@ -231,7 +232,7 @@ npx jup-sh@alpha pay \
 Rejected payment with an unsupported token:
 
 ```bash
-npx jup-sh@alpha pay \
+npx jup-sh pay \
   --agent deepseek \
   --token FAKE \
   --amount 20 \
@@ -239,19 +240,29 @@ npx jup-sh@alpha pay \
   --json
 ```
 
-## 7. Use Jupiter Quote-Only Mode
+## 7. Use Jupiter Execution Mode
 
 ```bash
-npx jup-sh@alpha pay \
+npx jup-sh pay \
   --agent deepseek \
   --token SOL \
   --amount 20 \
   --settle USDC \
+  --recipient-token-account <RECIPIENT_USDC_TOKEN_ACCOUNT> \
   --quote-provider jupiter
 ```
 
-This asks Jupiter for a quote estimate. It still does not sign, submit, or
-execute a swap.
+This asks Jupiter for an ExactOut quote that can be turned into a swap
+transaction. To execute from the CLI, sign locally with a user keypair:
+
+```bash
+npx jup-sh intent execute intent_xxx \
+  --keypair ~/.config/solana/id.json \
+  --rpc-url https://api.mainnet-beta.solana.com \
+  --json
+```
+
+The CLI submits the signed transaction and writes a local receipt.
 
 Optional settings:
 
@@ -275,25 +286,25 @@ boundary.
 List saved intents:
 
 ```bash
-npx jup-sh@alpha intent list
+npx jup-sh intent list
 ```
 
 Show one intent:
 
 ```bash
-npx jup-sh@alpha intent show intent_xxx
+npx jup-sh intent show intent_xxx
 ```
 
 Export a Risk Review URL:
 
 ```bash
-npx jup-sh@alpha intent export intent_xxx
+npx jup-sh intent export intent_xxx
 ```
 
 Or use the review shortcut:
 
 ```bash
-npx jup-sh@alpha review intent_xxx
+npx jup-sh review intent_xxx
 ```
 
 The exported URL contains a fragment payload:

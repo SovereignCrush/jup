@@ -123,7 +123,7 @@ The alpha does not implement:
 - Solana Pay transaction request generation;
 - durable backend persistence;
 - authentication;
-- published npm package distribution.
+- published SDK package.
 
 These are not accidental gaps. They are boundaries that keep the first
 milestone focused on agent intent, policy, and review.
@@ -221,6 +221,17 @@ Build a working CLI/SDK payment primitive with policy-gated Auto Pay,
 Risk Review fallback, Solana Pay transaction requests, and Jupiter
 token-to-USDC settlement.
 ```
+
+The Solana Pay transaction request step should start with the
+[Transaction Request Skeleton Design](transaction-request-skeleton-design.md),
+then move to runtime implementation only after policy, quote, and review
+handoff behavior are stable.
+
+The full path from the current alpha to a real payment version is tracked in
+the [Complete Version Roadmap](complete-version-roadmap.md). That roadmap keeps
+the sequence explicit: durable intent state, persisted review decisions,
+transaction request runtime, Jupiter transaction construction, wallet
+authorization, confirmation, and receipt.
 
 The first credible end-to-end path:
 

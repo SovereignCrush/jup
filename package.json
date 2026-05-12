@@ -1,13 +1,16 @@
 {
   "name": "jup-sh",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "node server.js",
-    "check": "node --check app.js && node --check server.js && npm run sdk:check && cd rust && cargo check",
+    "check": "node --check app.js && node --check server.js && node --check npm/bin/jup-sh && npm run docs:check && npm run sdk:check && cd rust && cargo check",
+    "docs:check": "node scripts/docs-contract-check.mjs",
     "sdk:check": "tsc --noEmit",
     "sdk:smoke": "node scripts/sdk-smoke.mjs",
     "sdk:jupiter:live": "node scripts/sdk-jupiter-live-smoke.mjs",
+    "server:smoke": "node scripts/server-api-smoke.mjs",
+    "execute:smoke": "node scripts/execute-smoke.mjs",
     "cli": "cd rust && cargo run --",
     "cli:alpha": "node npm/bin/jup-sh",
     "alpha:smoke": "node scripts/alpha-smoke.mjs",

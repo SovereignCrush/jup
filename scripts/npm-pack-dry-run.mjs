@@ -62,18 +62,18 @@ if (packageJson.bin?.["jup-sh"] !== "bin/jup-sh") {
 }
 
 if (packageJson.private === true) {
-  throw new Error("npm alpha package is still private");
+  throw new Error("npm package is still private");
 }
 
-if (packageJson.version !== "0.1.0-alpha.7") {
-  throw new Error(`unexpected npm alpha version: ${packageJson.version}`);
+if (packageJson.version !== "1.0.0") {
+  throw new Error(`unexpected npm version: ${packageJson.version}`);
 }
 
-if (packageJson.publishConfig?.tag !== "alpha") {
-  throw new Error("npm alpha package must publish with the alpha tag");
+if (packageJson.publishConfig?.tag !== "latest") {
+  throw new Error("npm package must publish with the latest tag");
 }
 
-console.log("npm alpha pack dry-run: ok");
+console.log("npm pack dry-run: ok");
 console.log(`package: ${pack.id}`);
 console.log(`files: ${files.join(", ")}`);
 console.log(`size: ${pack.size} bytes`);
