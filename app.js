@@ -244,6 +244,9 @@ function createHeader() {
         <a class="nav-github" href="https://github.com/jerrywang33/jup-sh" target="_blank" rel="noreferrer" aria-label="GitHub">
           <img src="/assets/logos/github.svg" alt="" />
         </a>
+        <a class="nav-x" href="https://x.com/jerrydev90" target="_blank" rel="noreferrer" aria-label="Built by Jerry on X">
+          <span aria-hidden="true">𝕏</span>
+        </a>
       </nav>
     </header>
   `;
@@ -253,10 +256,6 @@ function createFooter() {
   return `
     <footer class="footer">
       <span>Jupiter-powered risk and settlement for Solana agent payments.</span>
-      <a class="maker-link" href="https://x.com/jerrydev90" target="_blank" rel="noreferrer" aria-label="Built by Jerry on X">
-        <span aria-hidden="true">𝕏</span>
-        <b>Jerry</b>
-      </a>
     </footer>
   `;
 }
