@@ -73,7 +73,7 @@ jup-sh review intent_xxx
 Docs:
 
 ```txt
-https://jerrywang33.github.io/jup-sh/
+https://jerrywang33.github.io/jup/
 https://www.jup.sh
-https://github.com/jerrywang33/jup-sh
+https://github.com/jerrywang33/jup
 ```

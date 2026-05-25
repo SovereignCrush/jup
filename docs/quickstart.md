@@ -41,8 +41,8 @@ npx jup-sh pay --agent deepseek --token SOL --amount 6 --settle USDC --recipient
 For source development, you also need a working Rust toolchain and git:
 
 ```bash
-git clone https://github.com/jerrywang33/jup-sh.git
-cd jup-sh
+git clone https://github.com/jerrywang33/jup.git
+cd jup
 npm install
 ```
 

@@ -71,8 +71,8 @@ policy or risk signals require it.
 Current public surface:
 
 - website at `https://www.jup.sh`;
-- GitHub repo at `https://github.com/jerrywang33/jup-sh`;
-- GitHub Pages docs at `https://jerrywang33.github.io/jup-sh/`;
+- GitHub repo at `https://github.com/jerrywang33/jup`;
+- GitHub Pages docs at `https://jerrywang33.github.io/jup/`;
 - public npm alpha package: `jup-sh`;
 - source-run Rust CLI for development;
 - static Risk Review page;

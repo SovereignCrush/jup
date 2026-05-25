@@ -240,8 +240,8 @@ function createHeader() {
         </span>
       </a>
       <nav class="nav">
-        <a class="nav-docs" href="https://jerrywang33.github.io/jup-sh/" target="_blank" rel="noreferrer">Docs</a>
-        <a class="nav-github" href="https://github.com/jerrywang33/jup-sh" target="_blank" rel="noreferrer" aria-label="GitHub">
+        <a class="nav-docs" href="https://jerrywang33.github.io/jup/" target="_blank" rel="noreferrer">Docs</a>
+        <a class="nav-github" href="https://github.com/jerrywang33/jup" target="_blank" rel="noreferrer" aria-label="GitHub">
           <img src="/assets/logos/github.svg" alt="" />
         </a>
         <a class="nav-x" href="https://x.com/jerrydev90" target="_blank" rel="noreferrer" aria-label="Built by Jerry on X">

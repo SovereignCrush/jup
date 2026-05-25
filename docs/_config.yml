@@ -1,6 +1,6 @@
 title: jup.sh Docs
 description: Risk and settlement for Solana agent payments.
-baseurl: "/jup-sh"
+baseurl: "/jup"
 url: "https://jerrywang33.github.io"
 markdown: kramdown
 permalink: pretty

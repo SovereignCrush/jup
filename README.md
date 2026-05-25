@@ -32,7 +32,7 @@ https://www.jup.sh
 Developer docs:
 
 ```txt
-https://jerrywang33.github.io/jup-sh/
+https://jerrywang33.github.io/jup/
 ```
 
 ## Current Version
